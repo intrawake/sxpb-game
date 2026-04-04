@@ -1,0 +1,18 @@
+; --- Mastermind ---
+; The game is over. The secret code was: RGBY
+(board
+ (row1 (()) B O B Y) (clue1 (()) 2 0)
+ (row2 (()) G B O Y) (clue2 (()) 1 2)
+ (row3 (()) P O G R) (clue3 (()) 0 2)
+ (row4 (()) G P B Y) (clue4 (()) 2 1)
+ (row5 (()) G R B Y) (clue5 (()) 2 2)
+ (row6 (()) G G B Y) (clue6 (()) 3 0)
+ (row7 (()) R G B Y) (clue7 (()) 4 0)
+ (row8 (()) _ _ _ _)
+ (row9 (()) _ _ _ _)
+ (row10 (()) _ _ _ _)
+)
+
+; --- Game Metadata ---
+(colors (()) R G B Y O P)
+(turn_count 7)

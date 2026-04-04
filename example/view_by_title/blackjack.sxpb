@@ -1,0 +1,5 @@
+; --- Blackjack (6 Decks) ---
+(board
+ (dealer (()) S9 ?)
+ (player (()) D3 D8) ; Total: 11
+)

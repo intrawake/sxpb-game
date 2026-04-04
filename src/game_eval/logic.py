@@ -1,0 +1,59 @@
+from typing import List, NamedTuple, Optional, Tuple
+
+
+class MoveResult(NamedTuple):
+    success: bool
+    reason: str
+
+
+class GameLogic:
+    def get_player_identifiers(self) -> List[str]:
+        """Returns a list of valid player identifiers for the game."""
+        raise NotImplementedError
+
+    def get_visible_players(self, player_idx: int) -> List[int]:
+        """Returns a list of player indices that are visible to the given player.
+
+        NOTE: This defaults to an empty list to ensure anonymity between players
+        (e.g., in Tic-Tac-Toe, agents shouldn"t see each other's metadata like
+        model names or pronouns). Games with visible identities (like Mafia)
+        must explicitly override this.
+        """
+        return []
+
+    def render_player_view(self, player_idx: int) -> str:
+        """Returns the SxPB-formatted string representation of the game state from the player's perspective."""
+        raise NotImplementedError
+
+    def render_player_history(self, player_idx: int) -> str:
+        """Returns the SxPB-formatted string representing the history of moves, or empty string if not applicable."""
+        return ""
+
+    def is_game_over(self) -> bool:
+        """Returns whether the game is over."""
+        raise NotImplementedError
+
+    def get_current_player(self) -> Optional[int]:
+        """Returns the index of the player whose turn it is, or None if the game is over."""
+        raise NotImplementedError
+
+    def get_prompt(self, player_idx: int) -> str:
+        """Returns a short string prompting the player to make a move."""
+        raise NotImplementedError
+
+    def make_move(self, player_idx: int, move: str) -> MoveResult:
+        """Applies the given move for the given player index. Returns a MoveResult."""
+        raise NotImplementedError
+
+    def get_algorithm_move(
+        self, player_idx: int, algorithm: str
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Executes the specified algorithm to return a string representing the next move.
+        Returns a tuple of (move_string, error_message).
+        """
+        return None, f"Algorithm '{algorithm}' not supported for this game."
+
+    def get_rules(self) -> str:
+        """Returns the rules of the game to be prepended to the player's prompt."""
+        return ""

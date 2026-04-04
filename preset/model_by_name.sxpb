@@ -1,0 +1,55 @@
+()
+
+(dono-gemini-lite
+ (fullname aistudio/gemini-3.1-flash-lite-preview)
+)
+
+(dono-gemma4-26a4b
+ (fullname aistudio/gemma-4-26b-a4b-it)
+)
+(dono-gemma4-31b
+ (fullname aistudio/gemma-4-31b-it)
+)
+
+(dono-gemma3-12b
+ (fullname aistudio/gemma-3-12b-it)
+)
+(dono-gemma3-27b
+ (fullname aistudio/gemma-3-27b-it)
+)
+(local-gemma3-27b
+ (fullname llama.cpp/unsloth-gemma-3-27b-it:Q6_K)
+)
+
+(dono-magistral-medium
+ (fullname mistral/magistral-medium-latest)
+)
+
+(dono-mistral-medium
+ (fullname mistral/mistral-medium-latest)
+)
+(dono-mistral-large
+ (fullname mistral/mistral-large-latest)
+)
+
+(dono-nemotron3-30a3b
+ (fullname openrouter/nvidia/nemotron-3-nano-30b-a3b:free)
+)
+(dono-nemotron3-120a12b
+ (fullname openrouter/nvidia/nemotron-3-super-120b-a12b:free)
+)
+(local-nemotron3-30a3b
+ (fullname llama.cpp/noctrex-Nemotron-3-Nano-30B-A3B:MXFP4_MOE)
+ (max_tokens 4000)
+)
+
+(free-openrouter
+ (fullname openrouter/openrouter/free)
+)
+
+(dono-gpt-oss-20b
+ (fullname openrouter/openai/gpt-oss-20b:free)
+)
+(dono-gpt-oss-120b
+ (fullname openrouter/openai/gpt-oss-120b:free)
+)

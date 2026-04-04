@@ -1,0 +1,46 @@
+[project]
+name = "sxpb-game"
+version = "0.1.0"
+description = "A collection of games for LLM evaluation and play, utilizing the SxPB format."
+authors = [
+    {name = "paprika-bot", email = "sockpaprika-git@intrawake.com"},
+]
+license = {text = "0BSD"}
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "sxpb @ git+https://github.com/sxproto/sxpb-py@04fbc53342cb7c7dd75166be955253711966f5e2",
+    "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@trunk",
+]
+requires-python = ">=3.9"
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "httpx",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "ty",
+]
+
+[tool.pdm.scripts]
+check-format = "ruff check"
+check-type = "ty check"
+tidy = "ruff format"
+lint = {composite = ["check-format", "check-type"]}
+tidytest = {composite = ["test", "tidy", "lint"]}
+test = "pytest"
+server = "python server/server.py --model_by_name preset/model_by_name.sxpb"
+client = "python server/client.py"
+benchmark-position = "python benchmark/position/eval.py --model_by_name preset/model_by_name.sxpb"
+
+[tool.pdm.scripts.fetch-wordle-words]
+shell = "mkdir -p ~/.local/share/wordle && curl -sSL -o ~/.local/share/wordle/words.txt https://gist.githubusercontent.com/dracos/dd0668f281e685bad51479e5acaadb93/raw/6bfa15d263d6d5b63840a8e5b64e04b382fdb079/valid-wordle-words.txt"
+help = "Fetch the Wordle word list to ~/.local/share/wordle/words.txt"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.ty.environment]
+root = ["src", "test", "."]
