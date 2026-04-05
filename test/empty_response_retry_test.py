@@ -41,12 +41,26 @@ def test_empty_response_retry():
             verbose_file,
         ]
 
-        # The server will retry 3 times, log the empty failures, and then exit with code 1.
-        result = subprocess.run(
-            cmd, env=env, capture_output=True, text=True, timeout=30, cwd=REPO_ROOT
+        proc = subprocess.Popen(
+            cmd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
+            text=True,
+            cwd=REPO_ROOT,
         )
+        import time
 
-        stdout_output = result.stdout + result.stderr
+        time.sleep(5)
+        try:
+            assert proc.stdin is not None
+            proc.stdin.write("quit\n")
+            proc.stdin.flush()
+            stdout_output, _ = proc.communicate(timeout=10)
+        except Exception:
+            proc.kill()
+            stdout_output, _ = proc.communicate()
         # Print output for debugging in the CI/environment
         print("Captured Output:")
         print(stdout_output)

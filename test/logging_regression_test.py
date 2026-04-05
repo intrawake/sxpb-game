@@ -47,9 +47,25 @@ def test_logging_on_api_failure():
             verbose_file,
         ]
 
-        # The server will retry 3 times (due to simulated failure in server.py),
-        # log the failure, and then exit with code 1.
-        subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=30)
+        proc = subprocess.Popen(
+            cmd,
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        import time
+
+        time.sleep(5)
+        try:
+            assert proc.stdin is not None
+            proc.stdin.write("quit\n")
+            proc.stdin.flush()
+            proc.communicate(timeout=10)
+        except Exception:
+            proc.kill()
+            proc.communicate()
 
         # Check logs even if server failed (it's expected to fail after logging)
         if not os.path.exists(history_file) or not os.path.exists(verbose_file):

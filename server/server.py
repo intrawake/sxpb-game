@@ -598,10 +598,27 @@ def main():
                         attempt += 1
 
             sys.stdout.write(
-                f"FATAL: LLM Move failed repeatedly for {curr_player_id}, giving up.\n"
+                f"LLM Move failed repeatedly for {curr_player_id}. Waiting for user intervention (type 'retry', 'msg <text>', or 'quit').\n"
             )
             sys.stdout.flush()
-            write_logs_and_exit(1)
+
+            with game_lock:
+                server_state["llm_thread"] = threading.get_ident()
+            try:
+                while True:
+                    import time
+
+                    time.sleep(0.5)
+            except AbortRequestException:
+                sys.stdout.write(
+                    f"Resuming LLM request for {curr_player_id} after user intervention.\n"
+                )
+                sys.stdout.flush()
+                process_llm_turn(idx, curr_player_id, conf)
+                return
+            finally:
+                with game_lock:
+                    server_state["llm_thread"] = None
 
         threading.Thread(target=llm_worker, daemon=True).start()
 

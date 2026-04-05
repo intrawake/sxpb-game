@@ -24,6 +24,7 @@ class MafiaLogic(GameLogic):
         self.detective_result = None
         self.vigilante_has_shot = False
         self.vigilante_target = None
+        self.last_saved_player = None
 
         self.day_votes = {}
         self.night_votes = {}
@@ -212,6 +213,7 @@ class MafiaLogic(GameLogic):
             if self.phase in ["NIGHT_DOCTOR", "NIGHT_DETECTIVE", "NIGHT_VIGILANTE"]:
                 if parts[0].lower() == "skip":
                     if self.phase == "NIGHT_DOCTOR":
+                        self.last_saved_player = None
                         det_exists = any(
                             r == "Detective" and a
                             for r, a in zip(self.roles, self.alive)
@@ -863,8 +865,8 @@ class MafiaLogic(GameLogic):
         mafia_count = max(1, self.num_players // 3)
         return (
             "Mafia is a social deduction game.\n"
-            f"Roles: There are {mafia_count} Mafia members. They want to outnumber Villagers. Villagers (including 1 Doctor and 1 Detective) want to eliminate all Mafia.\n"
-            "During the Night, the Mafia gets a private discussion round before voting on who to kill. The Doctor can save one person. The Detective can investigate one person's alignment.\n"
+            f"Roles: There are {mafia_count} Mafia members. They want to outnumber Villagers. Villagers (including 1 Doctor, 1 Detective, and 1 Vigilante) want to eliminate all Mafia.\n"
+            "During the Night, the Mafia gets a private discussion round before voting on who to kill. The Doctor can save one person (but not the same person on consecutive nights). The Detective can investigate one person's alignment. The Vigilante has one bullet for the entire game to shoot someone.\n"
             "During the Day, everyone discusses and then votes on who to lynch.\n"
             "Ties in voting (both Day lynch and Night kill) are broken deterministically by targeting the first candidate.\n"
             "Lie, deceive, or tell the truth to survive."
@@ -919,7 +921,14 @@ class MafiaLogic(GameLogic):
                 return f"kill p{target + 1}", None
 
             if self.phase == "NIGHT_DOCTOR":
-                target = random.choice(alive_targets)
+                allowed = [
+                    t
+                    for t in alive_targets
+                    if getattr(self, "last_saved_player", None) != t
+                ]
+                if not allowed:
+                    return "skip", None
+                target = random.choice(allowed)
                 return f"save p{target + 1}", None
 
             if self.phase == "NIGHT_DETECTIVE":

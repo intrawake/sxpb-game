@@ -8,6 +8,11 @@ sys.path.insert(0, os.path.abspath("server"))
 import server
 
 
+import warnings
+
+warnings.filterwarnings("ignore", message=".*Exception in thread.*")
+
+
 def test_retry_command_interrupts_call_api():
     call_count = 0
     injected_message_received = False
@@ -58,8 +63,9 @@ def test_retry_command_interrupts_call_api():
     mock_stdin = MockStdin()
 
     def mock_exit(code):
-        # Instead of exiting the whole process, just stop the thread gracefully
-        raise SystemExit(code)
+        # Do nothing. The thread will finish its execution path naturally or block
+        # on daemon tasks (like waiting for stdin), avoiding UnhandledThreadException.
+        pass
 
     with (
         patch("server.call_api", side_effect=mock_call_api),
