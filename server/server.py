@@ -270,7 +270,8 @@ def main():
     server_state: "typing.Dict[str, typing.Any]" = {
         "llm_thread": None,
         "is_suspended": False,
-        "suspended_players": set(),
+        "suspended_players": {},
+        "resumed_players": set(),
     }
 
     def stdin_listener():
@@ -306,13 +307,31 @@ def main():
                 if len(parts) > 1:
                     try:
                         idx = int(parts[1])
+                        count = -1
+                        if len(parts) > 2:
+                            count = int(parts[2])
                         with game_lock:
-                            server_state["suspended_players"].add(idx)
-                        sys.stdout.write(
-                            f"Game will suspend the next time Player {idx} is about to move.\n"
-                        )
+                            if count == 0:
+                                server_state["suspended_players"].pop(idx, None)
+                                server_state["resumed_players"].discard(idx)
+                                sys.stdout.write(
+                                    f"Suspension cleared for Player {idx}.\n"
+                                )
+                            else:
+                                server_state["suspended_players"][idx] = count
+                                server_state["resumed_players"].discard(idx)
+                                if count == -1:
+                                    sys.stdout.write(
+                                        f"Game will suspend the next time Player {idx} is about to move.\n"
+                                    )
+                                else:
+                                    sys.stdout.write(
+                                        f"Game will suspend the next {count} times Player {idx} is about to move.\n"
+                                    )
                     except ValueError:
-                        sys.stdout.write(f"Invalid player index: {parts[1]}\n")
+                        sys.stdout.write(
+                            f"Invalid player index or count: {' '.join(parts[1:])}\n"
+                        )
                 else:
                     with game_lock:
                         server_state["is_suspended"] = True
@@ -329,7 +348,15 @@ def main():
                         try:
                             idx = int(parts[1])
                             if idx in server_state["suspended_players"]:
-                                server_state["suspended_players"].remove(idx)
+                                count = server_state["suspended_players"][idx]
+                                if count > 0:
+                                    server_state["suspended_players"][idx] -= 1
+                                    if server_state["suspended_players"][idx] == 0:
+                                        del server_state["suspended_players"][idx]
+                                elif count == -1:
+                                    del server_state["suspended_players"][idx]
+
+                                server_state["resumed_players"].add(idx)
                                 sys.stdout.write(f"Resuming Player {idx}...\n")
                             else:
                                 sys.stdout.write(f"Player {idx} was not suspended.\n")
@@ -338,6 +365,7 @@ def main():
                     else:
                         server_state["is_suspended"] = False
                         server_state["suspended_players"].clear()
+                        server_state["resumed_players"].clear()
                         sys.stdout.write("Resuming all...\n")
 
                     if was_suspended:
@@ -440,7 +468,7 @@ def main():
                     "  retry           - Abort and retry the current LLM request\n"
                 )
                 sys.stdout.write(
-                    "  suspend [idx]   - Pause the game loop (globally or for player [idx])\n"
+                    "  suspend [idx] [n] - Pause the game (globally or for player [idx] for [n] moves)\n"
                 )
                 sys.stdout.write(
                     "  resume [idx]    - Resume the game loop (globally or for player [idx])\n"
@@ -544,7 +572,9 @@ def main():
         with game_lock:
             idx = game.get_current_player()
             is_player_suspended = (
-                idx is not None and idx in server_state["suspended_players"]
+                idx is not None
+                and idx in server_state["suspended_players"]
+                and idx not in server_state["resumed_players"]
             )
             if server_state["is_suspended"] or is_player_suspended:
                 if is_player_suspended:
@@ -555,6 +585,10 @@ def main():
                     sys.stdout.write("Game is suspended. Use 'resume' to continue.\n")
                 sys.stdout.flush()
                 return
+
+            if idx is not None:
+                server_state["resumed_players"].discard(idx)
+
             if game.is_game_over() or (
                 args.turn_limit and turns_taken >= args.turn_limit
             ):
@@ -760,7 +794,9 @@ def main():
             except AbortRequestException:
                 with game_lock:
                     is_player_suspended = (
-                        idx is not None and idx in server_state["suspended_players"]
+                        idx is not None
+                        and idx in server_state["suspended_players"]
+                        and idx not in server_state["resumed_players"]
                     )
                     if server_state["is_suspended"] or is_player_suspended:
                         sys.stdout.write(

@@ -248,3 +248,90 @@ def test_suspend_resume_commands():
 
         mock_stdin.push("quit\n")
         server_thread.join(timeout=3.0)
+
+
+def test_suspend_with_count_command():
+    import io
+
+    class MockStdin:
+        def __init__(self):
+            self.lines = []
+            self.lock = threading.Lock()
+            self.cond = threading.Condition(self.lock)
+            self.closed = False
+
+        def push(self, line):
+            with self.lock:
+                self.lines.append(line)
+                self.cond.notify()
+
+        def close(self):
+            with self.lock:
+                self.closed = True
+                self.cond.notify_all()
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            with self.lock:
+                while not self.lines and not self.closed:
+                    self.cond.wait()
+                if self.lines:
+                    return self.lines.pop(0)
+                raise StopIteration
+
+    mock_stdin = MockStdin()
+    mock_stdout = io.StringIO()
+
+    def mock_exit(code):
+        pass
+
+    with (
+        patch("server.call_api", return_value=('(answer "a1")', None, None)),
+        patch("sys.stdin", mock_stdin),
+        patch("sys.stdout", mock_stdout),
+        patch("os._exit", side_effect=mock_exit),
+        patch(
+            "sys.argv",
+            [
+                "server.py",
+                "--game",
+                "tictactoe",
+                "--openai_api_url",
+                "http://dummy/v1",
+                "--players",
+                "((model gpt-4)) ((model gpt-4))",
+            ],
+        ),
+    ):
+        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread.start()
+
+        # Wait for server to start
+        time.sleep(1.0)
+
+        # Suspend player 0 for 2 moves
+        mock_stdin.push("suspend 0 2\n")
+        time.sleep(0.5)
+
+        # Clear suspension
+        mock_stdin.push("suspend 0 0\n")
+        time.sleep(0.5)
+
+        # Suspend player 1 indefinitely
+        mock_stdin.push("suspend 1\n")
+        time.sleep(0.5)
+
+        # Resume player 1
+        mock_stdin.push("resume 1\n")
+        time.sleep(0.5)
+
+        mock_stdin.push("quit\n")
+        server_thread.join(timeout=3.0)
+
+        output = mock_stdout.getvalue()
+        assert "Game will suspend the next 2 times Player 0 is about to move." in output
+        assert "Suspension cleared for Player 0." in output
+        assert "Game will suspend the next time Player 1 is about to move." in output
+        assert "Resuming Player 1..." in output
