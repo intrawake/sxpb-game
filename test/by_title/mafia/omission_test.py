@@ -2,7 +2,7 @@ from sxpb_game.by_title.mafia.logic import MafiaLogic
 
 
 def test_doctor_omitted_goes_to_detective():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     assert game.make_move(0, "Mafia Villager Villager Detective Vigilante").success
 
     assert game.phase == "NIGHT_MAFIA_DISCUSSION"
@@ -28,7 +28,7 @@ def test_doctor_omitted_goes_to_detective():
 
 
 def test_doctor_and_detective_omitted_goes_to_vigilante():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     assert game.make_move(0, "Mafia Villager Villager Villager Vigilante").success
 
     assert game.phase == "NIGHT_MAFIA_DISCUSSION"
@@ -47,7 +47,7 @@ def test_doctor_and_detective_omitted_goes_to_vigilante():
 
 
 def test_all_specials_omitted():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     assert game.make_move(0, "Mafia Villager Villager Villager Villager").success
 
     assert game.phase == "NIGHT_MAFIA_DISCUSSION"
@@ -60,7 +60,7 @@ def test_all_specials_omitted():
 
 
 def test_dead_specials_are_skipped():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     assert game.make_move(0, "Mafia Villager Doctor Detective Vigilante").success
 
     # Kill the Doctor during the first day so they are dead on night 2

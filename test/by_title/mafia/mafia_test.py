@@ -2,7 +2,7 @@ from sxpb_game.by_title.mafia.logic import MafiaLogic
 
 
 def test_mafia_logic():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
 
     # Init
     assert game.phase == "DEAL_ROLES"
@@ -72,7 +72,7 @@ def test_mafia_logic():
 
 
 def test_day_lynch_tiebreaker():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     game.make_move(0, "Mafia Villager Doctor Detective Villager")
 
     # Skip to day 1 vote to test voting logic directly
@@ -96,7 +96,7 @@ def test_day_lynch_tiebreaker():
 
 
 def test_day_lynch_tiebreaker_abstain():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     game.make_move(0, "Mafia Villager Doctor Detective Villager")
 
     game.phase = "DAY_VOTE"
@@ -118,7 +118,7 @@ def test_day_lynch_tiebreaker_abstain():
 
 
 def test_night_kill_tiebreaker():
-    game = MafiaLogic(num_players=6)
+    game = MafiaLogic(num_players=7)
     # 2 mafia, p1 and p2
     game.make_move(0, "Mafia Mafia Villager Villager Villager Villager")
 
@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
 
 def test_team_visibility():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     game.make_move(0, "Mafia Villager Doctor Detective Villager")
 
     # Kill the Doctor (p3)
@@ -174,7 +174,7 @@ def test_detective_sees_investigated_team():
     from typing import cast, Any
     from sxpb_game.by_title.mafia.logic import MafiaLogic
 
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     game.make_move(0, "Mafia Villager Doctor Detective Villager")
     game.make_move(1, "Let's kill p5")
     game.make_move(1, "kill p5")

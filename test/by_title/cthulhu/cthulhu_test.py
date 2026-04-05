@@ -2,7 +2,7 @@ from sxpb_game.by_title.cthulhu.logic import CthulhuLogic
 
 
 def test_cthulhu_random_game():
-    game = CthulhuLogic(4)
+    game = CthulhuLogic(5)
     assert game.get_player_identifiers() == ["GM", "p1", "p2", "p3", "p4"]
 
     while not game.is_game_over():

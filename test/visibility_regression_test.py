@@ -32,7 +32,7 @@ def test_tictactoe_visibility_is_empty():
 
 def test_mafia_visibility_is_populated():
     """Verify that games that *want* visible identities still have them."""
-    game = MafiaLogic(num_players=3)
+    game = MafiaLogic(num_players=4)
     visible = game.get_visible_players(1)
     assert 1 in visible and 2 in visible and 3 in visible
     assert 0 not in visible, "GM should remain hidden in Mafia"

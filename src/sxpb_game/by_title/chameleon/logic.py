@@ -5,7 +5,7 @@ from game_eval.logic import GameLogic, MoveResult
 
 class ChameleonLogic(GameLogic):
     def __init__(self, num_players: int = 5):
-        self.num_players = max(4, num_players)
+        self.num_players = max(4, num_players - 1)
         self.phase = "SETUP_WORDS"
         self.words = []
         self.secret_word = None

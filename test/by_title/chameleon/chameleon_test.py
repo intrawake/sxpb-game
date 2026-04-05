@@ -7,7 +7,7 @@ from sxpb_game.by_title.chameleon.logic import ChameleonLogic
 
 def test_chameleon_full_game_random():
     """Run a full game with random algorithms to ensure no crashes."""
-    logic = ChameleonLogic(num_players=5)
+    logic = ChameleonLogic(num_players=6)
 
     # 1. SETUP_WORDS
     assert logic.get_current_player() == 0

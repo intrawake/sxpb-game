@@ -2,7 +2,7 @@ from sxpb_game.by_title.mafia.logic import MafiaLogic
 
 
 def test_day_lynch_tiebreaker():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     game.make_move(0, "Mafia Villager Doctor Detective Villager")
 
     game.phase = "DAY_VOTE"
@@ -24,7 +24,7 @@ def test_day_lynch_tiebreaker():
 
 
 def test_day_lynch_tiebreaker_abstain():
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
     game.make_move(0, "Mafia Villager Doctor Detective Villager")
 
     game.phase = "DAY_VOTE"
@@ -45,7 +45,7 @@ def test_day_lynch_tiebreaker_abstain():
 
 
 def test_night_kill_tiebreaker():
-    game = MafiaLogic(num_players=6)
+    game = MafiaLogic(num_players=7)
     game.make_move(0, "Mafia Mafia Villager Villager Villager Villager")
 
     assert game.phase == "NIGHT_MAFIA_DISCUSSION"

@@ -137,10 +137,7 @@ def main():
     if player_configs:
         sig = inspect.signature(logic_class.__init__)
         if "num_players" in sig.parameters:
-            if args.game in ("cthulhu", "mafia", "chameleon"):
-                init_kwargs["num_players"] = max(3, len(player_configs) - 1)
-            else:
-                init_kwargs["num_players"] = len(player_configs)
+            init_kwargs["num_players"] = len(player_configs)
 
     game = logic_class(**init_kwargs)
     game_lock = threading.RLock()

@@ -9,7 +9,7 @@ from game_eval.logic import GameLogic, MoveResult
 
 class MafiaLogic(GameLogic):
     def __init__(self, num_players: int = 5):
-        self.num_players = max(4, num_players)
+        self.num_players = max(4, num_players - 1)
         # Phases: DEAL_ROLES, NIGHT_MAFIA_DISCUSSION, NIGHT_MAFIA_VOTE, NIGHT_DOCTOR, NIGHT_DETECTIVE, DAY_DISCUSSION, DAY_VOTE
         self.phase = "DEAL_ROLES"
         self.turn = 0  # Player index (0 to N-1) for sequential actions

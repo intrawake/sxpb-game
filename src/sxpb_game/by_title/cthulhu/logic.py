@@ -9,7 +9,7 @@ from game_eval.logic import GameLogic, MoveResult
 
 class CthulhuLogic(GameLogic):
     def __init__(self, num_players: int = 4):
-        self.num_players = max(3, num_players)
+        self.num_players = max(3, num_players - 1)
         self.phase = "DEAL_ROLES"  # DEAL_ROLES, DEAL_CARDS, PLAY, REPLY, GROUP_REPLY
         self.turn = 0  # Player index (0 to N-1) who has the flashlight
         self.target_player = None  # For REPLY phase

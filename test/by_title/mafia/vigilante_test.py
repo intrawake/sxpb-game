@@ -2,7 +2,7 @@ from sxpb_game.by_title.mafia.logic import MafiaLogic
 
 
 def test_vigilante_shoots():
-    game = MafiaLogic(num_players=6)
+    game = MafiaLogic(num_players=7)
 
     assert game.phase == "DEAL_ROLES"
     assert game.make_move(0, "Mafia Mafia Villager Villager Doctor Vigilante").success
@@ -89,7 +89,7 @@ def test_vigilante_shoots():
 
 
 def test_vigilante_skips():
-    game = MafiaLogic(num_players=6)
+    game = MafiaLogic(num_players=7)
 
     assert game.phase == "DEAL_ROLES"
     assert game.make_move(0, "Mafia Mafia Villager Villager Doctor Vigilante").success
@@ -172,7 +172,7 @@ def test_vigilante_skips():
 def test_vigilante_shoots_after_detective():
     from sxpb_game.by_title.mafia.logic import MafiaLogic
 
-    game = MafiaLogic(num_players=7)
+    game = MafiaLogic(num_players=8)
 
     assert game.phase == "DEAL_ROLES"
     assert game.make_move(

@@ -29,7 +29,7 @@ def get_games():
         ("minesweeper", lambda: MinesweeperLogic("a8 h8 a1")),
         ("sudoku", lambda: SudokuLogic("")),
         ("old_maid", lambda: OldMaidLogic()),
-        ("cthulhu", lambda: CthulhuLogic(4)),
+        ("cthulhu", lambda: CthulhuLogic(5)),
         ("codenames", lambda: CodenamesLogic()),
         ("trolley", lambda: TrolleyLogic()),
     ]

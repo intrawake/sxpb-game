@@ -13,7 +13,7 @@ def test_discussion_count_with_dead_players():
     # On Day 1, there are 4 players alive.
     # They should speak 4 * 2 = 8 times total.
 
-    game = MafiaLogic(num_players=5)
+    game = MafiaLogic(num_players=6)
 
     # 1. Deal Roles
     game.make_move(0, "Mafia Doctor Detective Villager Villager")

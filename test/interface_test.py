@@ -489,7 +489,7 @@ def test_sudoku_interface():
 
 
 def test_cthulhu_interface():
-    game = CthulhuLogic(4)
+    game = CthulhuLogic(5)
     ids = game.get_player_identifiers()
     assert ids == ["GM", "p1", "p2", "p3", "p4"]
 
