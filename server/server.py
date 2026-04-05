@@ -29,8 +29,8 @@ def format_sxpb_txt(s):
         return json.dumps(s)
     s = s.replace("\\", "\\\\").replace('"""', '""\\"')
     if not s.endswith("\n"):
-        return f'"""\\\n{s}\\\n"""'
-    return f'"""\\\n{s}"""'
+        return f'"""\\n{s}\\n"""'
+    return f'"""\\n{s}"""'
 
 
 def main():
@@ -269,7 +269,8 @@ def main():
 
     server_state: "typing.Dict[str, typing.Any]" = {
         "llm_thread": None,
-        "injected_messages": [],
+        "is_suspended": False,
+        "suspended_players": set(),
     }
 
     def stdin_listener():
@@ -300,19 +301,158 @@ def main():
                     else:
                         sys.stdout.write("No active LLM request to retry.\n")
                         sys.stdout.flush()
-            elif line.startswith("msg "):
-                msg = line[4:].strip()
+            elif line.startswith("suspend"):
+                parts = line.split()
+                if len(parts) > 1:
+                    try:
+                        idx = int(parts[1])
+                        with game_lock:
+                            server_state["suspended_players"].add(idx)
+                        sys.stdout.write(
+                            f"Game will suspend the next time Player {idx} is about to move.\n"
+                        )
+                    except ValueError:
+                        sys.stdout.write(f"Invalid player index: {parts[1]}\n")
+                else:
+                    with game_lock:
+                        server_state["is_suspended"] = True
+                    sys.stdout.write("Game will suspend after the current move.\n")
+                sys.stdout.flush()
+            elif line.startswith("resume"):
+                parts = line.split()
                 with game_lock:
-                    server_state["injected_messages"].append(msg)
-                sys.stdout.write(f"Queued message for next LLM prompt: {msg}\n")
+                    was_suspended = (
+                        server_state["is_suspended"]
+                        or len(server_state["suspended_players"]) > 0
+                    )
+                    if len(parts) > 1:
+                        try:
+                            idx = int(parts[1])
+                            if idx in server_state["suspended_players"]:
+                                server_state["suspended_players"].remove(idx)
+                                sys.stdout.write(f"Resuming Player {idx}...\n")
+                            else:
+                                sys.stdout.write(f"Player {idx} was not suspended.\n")
+                        except ValueError:
+                            sys.stdout.write(f"Invalid player index: {parts[1]}\n")
+                    else:
+                        server_state["is_suspended"] = False
+                        server_state["suspended_players"].clear()
+                        sys.stdout.write("Resuming all...\n")
+
+                    if was_suspended:
+                        sys.stdout.flush()
+                        if not server_state["llm_thread"]:
+                            threading.Thread(
+                                target=process_automated_turn, daemon=True
+                            ).start()
+                    else:
+                        sys.stdout.write("Game is not suspended.\n")
+                        sys.stdout.flush()
+            elif line.startswith("view"):
+                parts = line.split()
+                idx = 0
+                if len(parts) > 1:
+                    try:
+                        idx = int(parts[1])
+                    except ValueError:
+                        sys.stdout.write(f"Invalid player index: {parts[1]}\n")
+                        sys.stdout.flush()
+                        continue
+                with game_lock:
+                    if idx < 0 or idx >= len(players):
+                        sys.stdout.write(
+                            f"Player index {idx} out of range (0-{len(players) - 1}).\n"
+                        )
+                    else:
+                        sys.stdout.write(
+                            f"--- View for Player {idx} ({players[idx]}) ---\n"
+                        )
+                        sys.stdout.write(game.render_player_view(idx).strip() + "\n")
+                        sys.stdout.write("---------------------------\n")
+                    sys.stdout.flush()
+            elif line == "prompt":
+                with game_lock:
+                    idx = game.get_current_player()
+                    if idx is None:
+                        sys.stdout.write("No current player.\n")
+                    else:
+                        sys.stdout.write(
+                            f"--- Prompt for Player {idx} ({players[idx]}) ---\n"
+                        )
+                        prompt = generate_prompt(game, idx, player_configs)
+                        sys.stdout.write(prompt + "\n")
+                        sys.stdout.write("---------------------------\n")
+                    sys.stdout.flush()
+            elif line == "history":
+                with game_lock:
+                    sys.stdout.write("--- Move History ---\n")
+                    for i, entry in enumerate(move_history):
+                        tag = "turn" if entry["valid"] else "invalid_turn"
+                        if entry.get("is_analysis"):
+                            tag = "analysis"
+                        sys.stdout.write(
+                            f"{i}: (p {entry['player_index']}) [{tag}] {entry['content']}\n"
+                        )
+                    sys.stdout.write("---------------------------\n")
+                    sys.stdout.flush()
+            elif line.startswith("premove "):
+                parts = line.split(maxsplit=2)
+                if len(parts) < 3:
+                    sys.stdout.write("Usage: premove <idx> <move_text>\n")
+                    sys.stdout.flush()
+                    continue
+                try:
+                    idx = int(parts[1])
+                except ValueError:
+                    sys.stdout.write(f"Invalid player index: {parts[1]}\n")
+                    sys.stdout.flush()
+                    continue
+                move_text = parts[2].strip()
+                with game_lock:
+                    if idx < 0 or idx >= len(player_configs):
+                        sys.stdout.write(f"Player index {idx} out of range.\n")
+                    else:
+                        conf = player_configs[idx]
+                        if not isinstance(conf, dict):
+                            player_configs[idx] = {"premoves": [move_text]}
+                        else:
+                            if "premoves" not in conf:
+                                conf["premoves"] = []
+                            conf["premoves"].append(move_text)
+                        sys.stdout.write(
+                            f"Added premove for Player {idx}: {move_text}\n"
+                        )
+                    sys.stdout.flush()
+            elif line == "help":
+                sys.stdout.write("Supported commands:\n")
+                sys.stdout.write(
+                    "  view [idx]      - Show game view for player [idx] (default 0)\n"
+                )
+                sys.stdout.write(
+                    "  prompt          - Show the prompt for the current player\n"
+                )
+                sys.stdout.write("  history         - Show the move history\n")
+                sys.stdout.write(
+                    "  premove <i> <m> - Add a premove <m> for player index <i>\n"
+                )
+                sys.stdout.write(
+                    "  retry           - Abort and retry the current LLM request\n"
+                )
+                sys.stdout.write(
+                    "  suspend [idx]   - Pause the game loop (globally or for player [idx])\n"
+                )
+                sys.stdout.write(
+                    "  resume [idx]    - Resume the game loop (globally or for player [idx])\n"
+                )
+                sys.stdout.write("  help            - Show this help message\n")
+                sys.stdout.write("  quit, exit      - Shut down the server\n")
                 sys.stdout.flush()
             else:
                 sys.stdout.write(
-                    f"Unknown command: {line}. Supported: retry, msg <text>, quit, exit\n"
+                    f'Unknown command: {line}. Type "help" for available commands.\n'
                 )
                 sys.stdout.flush()
-
-    threading.Thread(target=stdin_listener, daemon=True).start()
 
     players = game.get_player_identifiers()
     while len(player_configs) < len(players):
@@ -402,6 +542,19 @@ def main():
     def process_automated_turn():
         nonlocal turns_taken
         with game_lock:
+            idx = game.get_current_player()
+            is_player_suspended = (
+                idx is not None and idx in server_state["suspended_players"]
+            )
+            if server_state["is_suspended"] or is_player_suspended:
+                if is_player_suspended:
+                    sys.stdout.write(
+                        f"Game is suspended for Player {idx}. Use 'resume' to continue.\n"
+                    )
+                else:
+                    sys.stdout.write("Game is suspended. Use 'resume' to continue.\n")
+                sys.stdout.flush()
+                return
             if game.is_game_over() or (
                 args.turn_limit and turns_taken >= args.turn_limit
             ):
@@ -483,11 +636,6 @@ def main():
             attempt = 0
             while attempt < 3:
                 with game_lock:
-                    while server_state["injected_messages"]:
-                        msg = server_state["injected_messages"].pop(0)
-                        messages.append(
-                            {"role": "user", "content": f"User intervention: {msg}"}
-                        )
                     server_state["llm_thread"] = threading.get_ident()
 
                 try:
@@ -610,6 +758,16 @@ def main():
 
                     time.sleep(0.5)
             except AbortRequestException:
+                with game_lock:
+                    is_player_suspended = (
+                        idx is not None and idx in server_state["suspended_players"]
+                    )
+                    if server_state["is_suspended"] or is_player_suspended:
+                        sys.stdout.write(
+                            "LLM aborted, but game is suspended. Type 'resume' to retry.\n"
+                        )
+                        sys.stdout.flush()
+                        return
                 sys.stdout.write(
                     f"Resuming LLM request for {curr_player_id} after user intervention.\n"
                 )
@@ -692,6 +850,7 @@ def main():
 
         sys.stdout.write("Server is live. Waiting for players on private channels...\n")
         sys.stdout.flush()
+        threading.Thread(target=stdin_listener, daemon=True).start()
 
         process_automated_turn()
 
