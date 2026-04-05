@@ -6,6 +6,7 @@ import argparse
 import threading
 import importlib
 import inspect
+import typing
 
 # Ensure we can import from src and local modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -263,6 +264,56 @@ def main():
     except ValueError:
         pass  # In case it is not called from the main thread
 
+    class AbortRequestException(BaseException):
+        pass
+
+    server_state: "typing.Dict[str, typing.Any]" = {
+        "llm_thread": None,
+        "injected_messages": [],
+    }
+
+    def stdin_listener():
+        for line in sys.stdin:
+            line = line.strip()
+            if not line:
+                continue
+            if line in ("quit", "exit"):
+                sys.stdout.write("Exiting server...\n")
+                sys.stdout.flush()
+                write_logs_and_exit(0)
+            elif line == "retry":
+                with game_lock:
+                    if server_state["llm_thread"]:
+                        import ctypes
+
+                        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                            ctypes.c_long(server_state["llm_thread"]),
+                            ctypes.py_object(AbortRequestException),
+                        )
+                        if res == 0:
+                            sys.stdout.write("Failed to interrupt LLM thread.\n")
+                        else:
+                            sys.stdout.write(
+                                "Interrupting current LLM request for retry...\n"
+                            )
+                        sys.stdout.flush()
+                    else:
+                        sys.stdout.write("No active LLM request to retry.\n")
+                        sys.stdout.flush()
+            elif line.startswith("msg "):
+                msg = line[4:].strip()
+                with game_lock:
+                    server_state["injected_messages"].append(msg)
+                sys.stdout.write(f"Queued message for next LLM prompt: {msg}\n")
+                sys.stdout.flush()
+            else:
+                sys.stdout.write(
+                    f"Unknown command: {line}. Supported: retry, msg <text>, quit, exit\n"
+                )
+                sys.stdout.flush()
+
+    threading.Thread(target=stdin_listener, daemon=True).start()
+
     players = game.get_player_identifiers()
     while len(player_configs) < len(players):
         player_configs.append({})
@@ -429,22 +480,40 @@ def main():
             sys.stdout.flush()
 
             messages = [{"role": "user", "content": prompt}]
-            for attempt in range(3):
-                # Simple hack to trigger URLError for tests
-                if model == "non-existent-model":
+            attempt = 0
+            while attempt < 3:
+                with game_lock:
+                    while server_state["injected_messages"]:
+                        msg = server_state["injected_messages"].pop(0)
+                        messages.append(
+                            {"role": "user", "content": f"User intervention: {msg}"}
+                        )
+                    server_state["llm_thread"] = threading.get_ident()
+
+                try:
+                    if model == "non-existent-model":
+                        content, api_req, api_res = None, None, None
+                    elif model == "empty-response-model":
+                        content, api_req, api_res = "", None, None
+                    else:
+                        content, api_req, api_res = call_api(
+                            model,
+                            messages,
+                            timeout=req_timeout,
+                            reasoning_effort=reasoning_effort,
+                            return_full=True,
+                            api_url=args.openai_api_url,
+                            **api_kwargs,
+                        )
+                except AbortRequestException:
                     content, api_req, api_res = None, None, None
-                elif model == "empty-response-model":
-                    content, api_req, api_res = "", None, None
-                else:
-                    content, api_req, api_res = call_api(
-                        model,
-                        messages,
-                        timeout=req_timeout,
-                        reasoning_effort=reasoning_effort,
-                        return_full=True,
-                        api_url=args.openai_api_url,
-                        **api_kwargs,
+                    sys.stdout.write(
+                        f"LLM request for {curr_player_id} was aborted by user.\n"
                     )
+                    sys.stdout.flush()
+                finally:
+                    with game_lock:
+                        server_state["llm_thread"] = None
                 if not content:
                     valid, reason = attempt_move(
                         idx, None, prompt=messages[-1]["content"]
@@ -460,6 +529,7 @@ def main():
                             "content": f'Received empty response. {reason} Please respond with ONLY one of the valid options/indices: {valid_str} using the format `(answer "your_move")`.',
                         }
                     )
+                    attempt += 1
                     continue
 
                 move = None
@@ -525,6 +595,7 @@ def main():
                                 "content": f'Move failed: {reason} Please respond with ONLY one of the valid options/indices: {valid_str} using the format `(answer "your_move")`.',
                             }
                         )
+                        attempt += 1
 
             sys.stdout.write(
                 f"FATAL: LLM Move failed repeatedly for {curr_player_id}, giving up.\n"
