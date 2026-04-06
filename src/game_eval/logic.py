@@ -57,3 +57,15 @@ class GameLogic:
     def get_rules(self) -> str:
         """Returns the rules of the game to be prepended to the player's prompt."""
         return ""
+
+
+def read_rulebook(logic_file_path: str) -> str:
+    """Reads the rulebook.md file residing in the same directory as the given logic file."""
+    import os
+
+    rulebook_path = os.path.join(os.path.dirname(logic_file_path), "rulebook.md")
+    try:
+        with open(rulebook_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""

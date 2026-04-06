@@ -1,6 +1,6 @@
 import random
 from typing import List, Optional, Tuple
-from game_eval.logic import GameLogic, MoveResult
+from game_eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class ChameleonLogic(GameLogic):
@@ -385,17 +385,7 @@ class ChameleonLogic(GameLogic):
         return board + " )\n)\n"
 
     def get_rules(self) -> str:
-        return (
-            "Chameleon is a social deduction word game.\n"
-            "The GM picks 16 words, and one of them is the secret word.\n"
-            "One player is the Leader, and one player is the Chameleon.\n"
-            "Everyone except the Chameleon knows the secret word.\n"
-            "The Leader says a word related to the secret word, followed by the rest of the players.\n"
-            "The Chameleon must blend in and say a word without knowing the secret word.\n"
-            "Then, everyone discusses for 2 rounds and votes on who the Chameleon is.\n"
-            "The Leader does not vote, but breaks ties.\n"
-            "If the Chameleon escapes the vote, they win. If caught, they can still win by guessing the secret word."
-        )
+        return read_rulebook(__file__)
 
     def get_algorithm_move(
         self, player_idx: int, algorithm: str

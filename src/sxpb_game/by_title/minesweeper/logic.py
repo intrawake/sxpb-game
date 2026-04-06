@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 # Add shared src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.logic import GameLogic, MoveResult
+from game_eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class MinesweeperLogic(GameLogic):
@@ -243,16 +243,7 @@ class MinesweeperLogic(GameLogic):
         return "\n".join(lines)
 
     def get_rules(self) -> str:
-        return (
-            "Minesweeper is a grid puzzle game where the objective is to clear a board containing hidden mines without detonating any of them.\n"
-            "Numbers on revealed squares indicate how many mines are adjacent to that square (including diagonally).\n"
-            "You can provide multiple moves in a single turn by separating them with spaces (e.g., 'Oa1 Fb2 ?c3').\n"
-            "Valid actions for a coordinate (e.g., 'a1'):\n"
-            "- 'Oa1': Open (reveal) the square at a1.\n"
-            "- 'Fa1': Place a flag on a1 to mark a suspected mine.\n"
-            "- '?a1': Place a question mark on a1.\n"
-            "- 'Ua1': Remove a flag or question mark from the square at a1."
-        )
+        return read_rulebook(__file__)
 
     def get_algorithm_move(
         self, player_idx: int, algorithm: str

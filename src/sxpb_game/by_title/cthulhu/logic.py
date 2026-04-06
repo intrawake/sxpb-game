@@ -4,7 +4,7 @@ import random
 from typing import List, Optional, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.logic import GameLogic, MoveResult
+from game_eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class CthulhuLogic(GameLogic):
@@ -335,17 +335,7 @@ class CthulhuLogic(GameLogic):
         return board
 
     def get_rules(self) -> str:
-        return (
-            "Don't Mess with Cthulhu is a social deduction game.\n"
-            "Roles are hidden: Investigators want to find all the Elder Signs. Cultists want to find Cthulhu or stall until the end of Round 4.\n"
-            "Players shuffle their hands and deal them face down in front of them.\n"
-            "The player with the flashlight chooses exactly one card in front of another player to reveal.\n"
-            "If it's an Elder Sign, the Investigators are one step closer to winning.\n"
-            "If it's Cthulhu, the Cultists win immediately!\n"
-            "If it's a Blank, nothing happens.\n"
-            "After a card is revealed, the person whose card was revealed takes the flashlight.\n"
-            "Before using the flashlight, players should talk to the table, ask questions, or claim what cards they have in front of them (truthfully or bluffing)."
-        )
+        return read_rulebook(__file__)
 
     def get_algorithm_move(
         self, player_idx: int, algorithm: str
