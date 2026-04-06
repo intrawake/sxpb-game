@@ -197,3 +197,48 @@ def test_detective_sees_investigated_team():
     assert "team" not in vil_view["table"]["players"]["p1"], (
         "Villager should NOT see p1's team"
     )
+
+
+def test_doctor_consecutive_saves():
+    from sxpb_game.by_title.mafia.logic import MafiaLogic
+
+    game = MafiaLogic(num_players=6)
+    game.make_move(0, "Mafia Villager Doctor Detective Villager")
+
+    # Night 1
+    # Mafia
+    game.make_move(1, "let's kill p5")
+    game.make_move(1, "kill p5")
+
+    # Doctor (p3)
+    assert game.phase == "NIGHT_DOCTOR"
+    assert game.make_move(3, "save p5").success
+
+    # Detective (p4)
+    game.make_move(4, "investigate p1")
+
+    # Day 1 - Day Order
+    game.make_move(0, "p1 p2 p3 p4 p5")
+
+    # Skip to voting to quickly resolve Day 1
+    game.phase = "DAY_VOTE"
+    game.vote_order = [0, 1, 2, 3, 4]
+    game.vote_idx = 0
+    game.make_move(1, "vote none")
+    game.make_move(2, "vote none")
+    game.make_move(3, "vote none")
+    game.make_move(4, "vote none")
+    game.make_move(5, "vote none")
+
+    # Night 2
+    assert game.phase == "NIGHT_MAFIA_DISCUSSION"
+    game.make_move(1, "let's kill p5 again")
+    game.make_move(1, "kill p5")
+
+    # Doctor (p3)
+    assert game.phase == "NIGHT_DOCTOR"
+    # Should not be able to save p5 again
+    result = game.make_move(3, "save p5")
+    assert not result.success, (
+        "Doctor should not be able to save the same player on consecutive nights"
+    )

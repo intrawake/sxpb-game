@@ -374,7 +374,13 @@ class MafiaLogic(GameLogic):
                 if t_idx < 0 or t_idx >= self.num_players or not self.alive[t_idx]:
                     return MoveResult(False, "")
 
+                if getattr(self, "last_saved_player", None) == t_idx:
+                    return MoveResult(
+                        False, "Cannot save the same player on consecutive nights."
+                    )
+
                 self.doctor_save_target = t_idx
+                self.last_saved_player = t_idx
                 self.history.append(f"(private {p_str} Doctor_save p{t_idx + 1})")
 
                 det_exists = any(
@@ -397,7 +403,14 @@ class MafiaLogic(GameLogic):
                 try:
                     t_idx = int(target_str[1:].rstrip("!")) - 1
                     if 0 <= t_idx < self.num_players and self.alive[t_idx]:
+                        if getattr(self, "last_saved_player", None) == t_idx:
+                            return MoveResult(
+                                False,
+                                "Cannot save the same player on consecutive nights.",
+                            )
+
                         self.doctor_save_target = t_idx
+                        self.last_saved_player = t_idx
                         self.history.append(
                             f"(private {p_str} Doctor_save p{t_idx + 1})"
                         )

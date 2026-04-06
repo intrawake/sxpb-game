@@ -16,7 +16,7 @@ def test_vigilante_shoots():
     assert game.make_move(2, "kill p3").success
 
     assert game.phase == "NIGHT_DOCTOR"
-    assert game.make_move(5, "save p4").success
+    assert game.make_move(5, "save p5").success
 
     assert game.phase == "NIGHT_VIGILANTE"
     # p6 is the Vigilante
@@ -103,7 +103,7 @@ def test_vigilante_skips():
     assert game.make_move(2, "kill p3").success
 
     assert game.phase == "NIGHT_DOCTOR"
-    assert game.make_move(5, "save p4").success
+    assert game.make_move(5, "save p5").success
 
     assert game.phase == "NIGHT_VIGILANTE"
     # p6 is the Vigilante
@@ -188,7 +188,7 @@ def test_vigilante_shoots_after_detective():
     assert game.make_move(2, "kill p3").success
 
     assert game.phase == "NIGHT_DOCTOR"
-    assert game.make_move(5, "save p4").success
+    assert game.make_move(5, "save p5").success
 
     assert game.phase == "NIGHT_DETECTIVE"
     assert game.make_move(6, "investigate p1").success
