@@ -275,6 +275,7 @@ def main():
     }
 
     def stdin_listener():
+        nonlocal turns_taken
         for line in sys.stdin:
             line = line.strip()
             if not line:
@@ -446,38 +447,43 @@ def main():
                         sys.stdout.flush()
                         continue
 
-                    conf = player_configs[idx]
-                    if not isinstance(conf, dict):
-                        player_configs[idx] = {"premoves": [move_text]}
-                    else:
-                        if "premoves" not in conf:
-                            conf["premoves"] = []
-                        conf["premoves"].append(move_text)
-
-                    sys.stdout.write(f"Added premove for Player {idx}: {move_text}\n")
-
-                    was_suspended = (
-                        server_state["is_suspended"]
-                        or len(server_state["suspended_players"]) > 0
+                    valid, reason = attempt_move(
+                        idx, move_text, prompt="<say command>", raw_response=move_text
                     )
-                    server_state["is_suspended"] = False
-                    if idx in server_state["suspended_players"]:
-                        count = server_state["suspended_players"][idx]
-                        if count > 0:
-                            server_state["suspended_players"][idx] -= 1
-                            if server_state["suspended_players"][idx] == 0:
-                                del server_state["suspended_players"][idx]
-                        elif count == -1:
-                            del server_state["suspended_players"][idx]
-                        server_state["resumed_players"].add(idx)
-                    sys.stdout.write("Resuming...\n")
-
-                    if was_suspended:
+                    if valid:
+                        sys.stdout.write(
+                            f"Say move accepted for Player {idx}: {move_text}\n"
+                        )
                         sys.stdout.flush()
-                        if not server_state["llm_thread"]:
-                            threading.Thread(
-                                target=process_automated_turn, daemon=True
-                            ).start()
+                        turns_taken += 1
+                        for p in players:
+                            send_state_to_player(p)
+
+                        was_suspended = (
+                            server_state["is_suspended"]
+                            or len(server_state["suspended_players"]) > 0
+                        )
+                        server_state["is_suspended"] = False
+                        if idx in server_state["suspended_players"]:
+                            count = server_state["suspended_players"][idx]
+                            if count > 0:
+                                server_state["suspended_players"][idx] -= 1
+                                if server_state["suspended_players"][idx] == 0:
+                                    del server_state["suspended_players"][idx]
+                            elif count == -1:
+                                del server_state["suspended_players"][idx]
+                            server_state["resumed_players"].add(idx)
+                        sys.stdout.write("Resuming...\n")
+                        sys.stdout.flush()
+
+                        if was_suspended:
+                            if not server_state["llm_thread"]:
+                                threading.Thread(
+                                    target=process_automated_turn, daemon=True
+                                ).start()
+                    else:
+                        sys.stdout.write(f"Invalid say move '{move_text}': {reason}\n")
+                        sys.stdout.flush()
             elif line == "history":
                 with game_lock:
                     sys.stdout.write("--- Move History ---\n")

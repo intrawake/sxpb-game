@@ -317,12 +317,23 @@ def test_say_command():
         mock_stdout.truncate(0)
         mock_stdout.seek(0)
 
-        # Say command when paused
-        mock_stdin.push("say b2\n")
+        # Say command when paused with invalid move
+        mock_stdin.push("say invalid_move\n")
         time.sleep(1.0)
 
         output = mock_stdout.getvalue()
-        assert "Premove used for X: b2" in output
+        assert "Invalid say move 'invalid_move':" in output
+        assert "Resuming..." not in output  # Game should still be paused
+
+        mock_stdout.truncate(0)
+        mock_stdout.seek(0)
+
+        # Say command with valid move
+        mock_stdin.push("say a1\n")
+        time.sleep(1.0)
+
+        output = mock_stdout.getvalue()
+        assert "Say move accepted for Player 0: a1" in output
         assert "Resuming..." in output
 
         mock_stdin.push("quit\n")
