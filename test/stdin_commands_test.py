@@ -144,7 +144,7 @@ def test_view_prompt_history_commands():
                 "--openai_api_url",
                 "http://dummy/v1",
                 "--players",
-                "((model gpt-4)) ((model gpt-4))",
+                '(()) (() (model "gpt-4")) (() (model "gpt-4"))',
             ],
         ),
     ):
@@ -223,7 +223,7 @@ def test_suspend_resume_commands():
                 "--openai_api_url",
                 "http://dummy/v1",
                 "--players",
-                "((model gpt-4)) ((model gpt-4))",
+                '(()) (() (model "gpt-4")) (() (model "gpt-4"))',
             ],
         ),
     ):
@@ -244,7 +244,7 @@ def test_suspend_resume_commands():
 
         # Should see resuming message
         output = mock_stdout.getvalue()
-        assert "Resuming all..." in output
+        assert "Resuming..." in output
 
         mock_stdin.push("quit\n")
         server_thread.join(timeout=3.0)
@@ -301,7 +301,7 @@ def test_suspend_with_count_command():
                 "--openai_api_url",
                 "http://dummy/v1",
                 "--players",
-                "((model gpt-4)) ((model gpt-4))",
+                '(()) (() (model "gpt-4")) (() (model "gpt-4"))',
             ],
         ),
     ):
@@ -335,3 +335,100 @@ def test_suspend_with_count_command():
         assert "Suspension cleared for Player 0." in output
         assert "Game will suspend the next time Player 1 is about to move." in output
         assert "Resuming Player 1..." in output
+
+
+def test_resume_preserves_player_suspension():
+    import io
+
+    class MockStdin:
+        def __init__(self):
+            self.lines = []
+            self.lock = threading.Lock()
+            self.cond = threading.Condition(self.lock)
+            self.closed = False
+
+        def push(self, line):
+            with self.lock:
+                self.lines.append(line)
+                self.cond.notify()
+
+        def close(self):
+            with self.lock:
+                self.closed = True
+                self.cond.notify_all()
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            with self.lock:
+                while not self.lines and not self.closed:
+                    self.cond.wait()
+                if self.lines:
+                    return self.lines.pop(0)
+                raise StopIteration
+
+    mock_stdin = MockStdin()
+    mock_stdout = io.StringIO()
+
+    def mock_exit(code):
+        pass
+
+    call_count = 0
+
+    def mock_call_api(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count % 2 == 1:
+            return '(answer "a1")', None, None
+        else:
+            return '(answer "b2")', None, None
+
+    with (
+        patch("server.call_api", side_effect=mock_call_api),
+        patch("sys.stdin", mock_stdin),
+        patch("sys.stdout", mock_stdout),
+        patch("os._exit", side_effect=mock_exit),
+        patch(
+            "sys.argv",
+            [
+                "server.py",
+                "--game",
+                "tictactoe",
+                "--openai_api_url",
+                "http://dummy/v1",
+                "--players",
+                '(()) (() (model "gpt-4")) (() (model "gpt-4"))',
+            ],
+        ),
+    ):
+        # Push suspend before the thread even starts
+        mock_stdin.push("suspend 0 2\n")
+
+        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread.start()
+
+        # Give it a moment to process the suspend and the first turn
+        time.sleep(0.5)
+
+        # It should log that it is suspended for P0
+        output = mock_stdout.getvalue()
+        assert "Game will suspend the next 2 times Player 0 is about to move." in output
+        assert "Game is suspended for Player 0." in output
+
+        # Clear stdout
+        mock_stdout.truncate(0)
+        mock_stdout.seek(0)
+
+        # Resume globally. This should decrement P0's suspension count to 1,
+        # unblock P0 for the current move, let P1 move, and then when it's P0's turn again,
+        # it should suspend AGAIN because P0 had a count of 2.
+        mock_stdin.push("resume\n")
+        time.sleep(1.5)
+
+        output = mock_stdout.getvalue()
+        assert "Resuming..." in output
+        assert "Game is suspended for Player 0." in output
+
+        mock_stdin.push("quit\n")
+        server_thread.join(timeout=3.0)

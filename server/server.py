@@ -364,9 +364,20 @@ def main():
                             sys.stdout.write(f"Invalid player index: {parts[1]}\n")
                     else:
                         server_state["is_suspended"] = False
-                        server_state["suspended_players"].clear()
-                        server_state["resumed_players"].clear()
-                        sys.stdout.write("Resuming all...\n")
+                        current_idx = game.get_current_player()
+                        if (
+                            current_idx is not None
+                            and current_idx in server_state["suspended_players"]
+                        ):
+                            count = server_state["suspended_players"][current_idx]
+                            if count > 0:
+                                server_state["suspended_players"][current_idx] -= 1
+                                if server_state["suspended_players"][current_idx] == 0:
+                                    del server_state["suspended_players"][current_idx]
+                            elif count == -1:
+                                del server_state["suspended_players"][current_idx]
+                            server_state["resumed_players"].add(current_idx)
+                        sys.stdout.write("Resuming...\n")
 
                     if was_suspended:
                         sys.stdout.flush()
