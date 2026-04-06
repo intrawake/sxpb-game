@@ -250,6 +250,85 @@ def test_suspend_resume_commands():
         server_thread.join(timeout=3.0)
 
 
+def test_say_command():
+    import io
+
+    class MockStdin:
+        def __init__(self):
+            self.lines = []
+            self.lock = threading.Lock()
+            self.cond = threading.Condition(self.lock)
+            self.closed = False
+
+        def push(self, line):
+            with self.lock:
+                self.lines.append(line)
+                self.cond.notify()
+
+        def close(self):
+            with self.lock:
+                self.closed = True
+                self.cond.notify_all()
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            with self.lock:
+                while not self.lines and not self.closed:
+                    self.cond.wait()
+                if self.lines:
+                    return self.lines.pop(0)
+                raise StopIteration
+
+    mock_stdin = MockStdin()
+    mock_stdout = io.StringIO()
+
+    def mock_exit(code):
+        pass
+
+    with (
+        patch(
+            "server.call_api",
+            side_effect=lambda *args, **kwargs: ('(answer "a1")', None, None),
+        ),
+        patch("sys.stdin", mock_stdin),
+        patch("sys.stdout", mock_stdout),
+        patch("os._exit", side_effect=mock_exit),
+        patch(
+            "sys.argv",
+            [
+                "server.py",
+                "--game",
+                "tictactoe",
+                "--openai_api_url",
+                "http://dummy/v1",
+                "--players",
+                '(()) (() (model "gpt-4")) (() (model "gpt-4"))',
+            ],
+        ),
+    ):
+        mock_stdin.push("suspend 0 -1\n")
+        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread.start()
+
+        time.sleep(0.5)
+
+        mock_stdout.truncate(0)
+        mock_stdout.seek(0)
+
+        # Say command when paused
+        mock_stdin.push("say b2\n")
+        time.sleep(1.0)
+
+        output = mock_stdout.getvalue()
+        assert "Premove used for X: b2" in output
+        assert "Resuming..." in output
+
+        mock_stdin.push("quit\n")
+        server_thread.join(timeout=3.0)
+
+
 def test_suspend_with_count_command():
     import io
 

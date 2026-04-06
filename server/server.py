@@ -423,6 +423,61 @@ def main():
                         sys.stdout.write(prompt + "\n")
                         sys.stdout.write("---------------------------\n")
                     sys.stdout.flush()
+            elif line.startswith("say "):
+                parts = line.split(maxsplit=1)
+                if len(parts) < 2:
+                    sys.stdout.write("Usage: say <move_text>\n")
+                    sys.stdout.flush()
+                    continue
+                move_text = parts[1].strip()
+                with game_lock:
+                    idx = game.get_current_player()
+                    is_player_suspended = (
+                        idx is not None
+                        and idx in server_state["suspended_players"]
+                        and idx not in server_state["resumed_players"]
+                    )
+                    if not (server_state["is_suspended"] or is_player_suspended):
+                        sys.stdout.write("Game is not suspended.\n")
+                        sys.stdout.flush()
+                        continue
+                    if idx is None:
+                        sys.stdout.write("No current player.\n")
+                        sys.stdout.flush()
+                        continue
+
+                    conf = player_configs[idx]
+                    if not isinstance(conf, dict):
+                        player_configs[idx] = {"premoves": [move_text]}
+                    else:
+                        if "premoves" not in conf:
+                            conf["premoves"] = []
+                        conf["premoves"].append(move_text)
+
+                    sys.stdout.write(f"Added premove for Player {idx}: {move_text}\n")
+
+                    was_suspended = (
+                        server_state["is_suspended"]
+                        or len(server_state["suspended_players"]) > 0
+                    )
+                    server_state["is_suspended"] = False
+                    if idx in server_state["suspended_players"]:
+                        count = server_state["suspended_players"][idx]
+                        if count > 0:
+                            server_state["suspended_players"][idx] -= 1
+                            if server_state["suspended_players"][idx] == 0:
+                                del server_state["suspended_players"][idx]
+                        elif count == -1:
+                            del server_state["suspended_players"][idx]
+                        server_state["resumed_players"].add(idx)
+                    sys.stdout.write("Resuming...\n")
+
+                    if was_suspended:
+                        sys.stdout.flush()
+                        if not server_state["llm_thread"]:
+                            threading.Thread(
+                                target=process_automated_turn, daemon=True
+                            ).start()
             elif line == "history":
                 with game_lock:
                     sys.stdout.write("--- Move History ---\n")
@@ -474,6 +529,9 @@ def main():
                 sys.stdout.write("  history         - Show the move history\n")
                 sys.stdout.write(
                     "  premove <i> <m> - Add a premove <m> for player index <i>\n"
+                )
+                sys.stdout.write(
+                    "  say <m>         - Like premove+resume for current player (only when paused)\n"
                 )
                 sys.stdout.write(
                     "  retry           - Abort and retry the current LLM request\n"
