@@ -18,7 +18,7 @@ def main():
     )
     parser.add_argument(
         "--rendezqueue_api_url",
-        default="https://rendezqueue.com/tryswap/",
+        default="https://rendezqueue.com/tryswap",
         help="Rendezqueue service URL",
     )
     parser.add_argument(

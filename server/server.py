@@ -37,7 +37,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generic Game Server (Authority)")
     parser.add_argument(
         "--rendezqueue_api_url",
-        default="https://rendezqueue.com/tryswap/",
+        default="https://rendezqueue.com/tryswap",
         help="Rendezqueue service URL",
     )
     parser.add_argument("--key", help="Base game key (default: name of the game)")
