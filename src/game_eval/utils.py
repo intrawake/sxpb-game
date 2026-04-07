@@ -223,7 +223,7 @@ def create_base_parser(description):
     return parser
 
 
-SHARED_FIELDS = {"name", "pronoun"}
+SHARED_FIELDS = {"name", "pronoun", "bio"}
 
 
 def get_player_by_identifier_sxpb(players, player_configs=None, visible_indices=None):

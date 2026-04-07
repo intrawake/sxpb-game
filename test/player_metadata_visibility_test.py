@@ -12,7 +12,13 @@ def test_player_metadata_filtering():
     """Verify that only shared fields are visible in player info."""
     players = ["p1", "p2", "p3"]
     player_configs = [
-        {"name": "Alice", "pronoun": "she", "model": "gpt-4", "secret": "shh"},
+        {
+            "name": "Alice",
+            "pronoun": "she",
+            "model": "gpt-4",
+            "secret": "shh",
+            "bio": "A smart cat.",
+        },
         {"name": "Bob", "pronoun": "he", "algorithm": "random", "extra": "data"},
         {"name": "Charlie", "pronoun": "they"},
     ]
@@ -37,6 +43,8 @@ def test_player_metadata_filtering():
     assert "name" in p1_info
     assert p1_info["name"] == "Alice"
     assert "pronoun" in p1_info
+    assert "bio" in p1_info
+    assert p1_info["bio"] == "A smart cat."
     assert "model" not in p1_info, "Model should be hidden!"
     assert "secret" not in p1_info, "Secret fields should be hidden!"
 
