@@ -7,6 +7,8 @@ import threading
 import importlib
 import inspect
 import typing
+import random
+import re
 
 # Ensure we can import from src and local modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -33,6 +35,23 @@ def format_sxpb_txt(s):
     return f'"""\\n{s}"""'
 
 
+def shuffle_player_configs(player_configs, indices_str, randint_func=None):
+    if randint_func is None:
+        randint_func = random.randint
+
+    cleaned_str = re.sub(r"\D", " ", indices_str)
+    valid_indices = []
+    for x in cleaned_str.split():
+        idx = int(x)
+        if idx < len(player_configs) and idx not in valid_indices:
+            valid_indices.append(idx)
+
+    for n in range(len(valid_indices)):
+        i = valid_indices[n]
+        j = valid_indices[randint_func(0, n)]
+        player_configs[i], player_configs[j] = player_configs[j], player_configs[i]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generic Game Server (Authority)")
     parser.add_argument(
@@ -46,6 +65,10 @@ def main():
     )
     parser.add_argument(
         "--players", help="SxPB string or file defining the player configs"
+    )
+    parser.add_argument(
+        "--shuffle_players",
+        help="Permissively formatted string of player indices to shuffle",
     )
     parser.add_argument(
         "--turn_limit",
@@ -106,6 +129,9 @@ def main():
         if not isinstance(player_configs, list):
             print("Error: --players must parse to a list (e.g. `(() (model qwen))`)")
             sys.exit(1)
+
+        if args.shuffle_players:
+            shuffle_player_configs(player_configs, args.shuffle_players)
 
     model_overrides = {}
     if args.model_by_name:
