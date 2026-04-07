@@ -274,6 +274,15 @@ def main():
         "resumed_players": set(),
     }
 
+    def check_suspension(idx):
+        is_player_suspended = (
+            idx is not None
+            and idx in server_state["suspended_players"]
+            and idx not in server_state["resumed_players"]
+        )
+        is_global = server_state["is_suspended"]
+        return is_global or is_player_suspended, is_player_suspended
+
     def stdin_listener():
         nonlocal turns_taken
         for line in sys.stdin:
@@ -433,12 +442,8 @@ def main():
                 move_text = parts[1].strip()
                 with game_lock:
                     idx = game.get_current_player()
-                    is_player_suspended = (
-                        idx is not None
-                        and idx in server_state["suspended_players"]
-                        and idx not in server_state["resumed_players"]
-                    )
-                    if not (server_state["is_suspended"] or is_player_suspended):
+                    is_suspended, is_player_suspended = check_suspension(idx)
+                    if not is_suspended:
                         sys.stdout.write("Game is not suspended.\n")
                         sys.stdout.flush()
                         continue
@@ -472,7 +477,6 @@ def main():
                                     del server_state["suspended_players"][idx]
                             elif count == -1:
                                 del server_state["suspended_players"][idx]
-                            server_state["resumed_players"].add(idx)
                         sys.stdout.write("Resuming...\n")
                         sys.stdout.flush()
 
@@ -646,12 +650,9 @@ def main():
         nonlocal turns_taken
         with game_lock:
             idx = game.get_current_player()
-            is_player_suspended = (
-                idx is not None
-                and idx in server_state["suspended_players"]
-                and idx not in server_state["resumed_players"]
-            )
-            if server_state["is_suspended"] or is_player_suspended:
+            is_suspended, is_player_suspended = check_suspension(idx)
+
+            if is_suspended:
                 if is_player_suspended:
                     sys.stdout.write(
                         f"Game is suspended for Player {idx}. Use 'resume' to continue.\n"
@@ -868,12 +869,8 @@ def main():
                     time.sleep(0.5)
             except AbortRequestException:
                 with game_lock:
-                    is_player_suspended = (
-                        idx is not None
-                        and idx in server_state["suspended_players"]
-                        and idx not in server_state["resumed_players"]
-                    )
-                    if server_state["is_suspended"] or is_player_suspended:
+                    is_suspended, is_player_suspended = check_suspension(idx)
+                    if is_suspended:
                         sys.stdout.write(
                             "LLM aborted, but game is suspended. Type 'resume' to retry.\n"
                         )
