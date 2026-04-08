@@ -53,7 +53,30 @@ def shuffle_player_configs(player_configs, indices_str, randint_func=None):
 
 
 def main():
+    argv = sys.argv[1:]
+    new_argv = []
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--args" and i + 1 < len(argv):
+            args_val = argv[i + 1]
+            i += 2
+            if args_val.strip().startswith("("):
+                loaded_args = sxpb.loads(args_val)
+            else:
+                with open(args_val, "r") as f:
+                    loaded_args = sxpb.loads(f.read())
+            if not isinstance(loaded_args, list):
+                print("Error: --args must parse to a list of strings")
+                sys.exit(1)
+            new_argv.extend([str(x) for x in loaded_args])
+        else:
+            new_argv.append(argv[i])
+            i += 1
+
     parser = argparse.ArgumentParser(description="Generic Game Server (Authority)")
+    parser.add_argument(
+        "--args", help="SxPB string or file defining additional command-line arguments"
+    )
     parser.add_argument(
         "--rendezqueue_api_url",
         default="https://rendezqueue.com/tryswap",
@@ -104,7 +127,7 @@ def main():
         required=True,
         help="OpenAI-compatible API URL (e.g. https://api.openai.com/v1)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(new_argv)
 
     import random
     import string
