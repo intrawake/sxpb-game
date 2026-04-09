@@ -272,9 +272,15 @@ def generate_prompt(game, player_idx: int, player_configs=None) -> str:
     rules = getattr(game, "get_rules", lambda: "")()
     rules_section = f"\n### Rules\n{rules}\n" if rules else ""
 
+    persona_section = ""
+    if player_configs and player_idx < len(player_configs):
+        persona = player_configs[player_idx].get("persona")
+        if persona:
+            persona_section = f"\n### Secret Persona\n{persona}\n"
+
     return f"""\
 You are a playing agent. You are player: {curr_player_id}
-Your goal is to win the game or force a draw.{player_info_section}{rules_section}
+Your goal is to win the game or force a draw.{rules_section}{persona_section}{player_info_section}
 ### Current Game State (SxPB format)
 ```sxpb
 {state_sxpb}
