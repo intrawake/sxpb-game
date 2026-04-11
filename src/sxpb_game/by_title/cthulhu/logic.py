@@ -123,6 +123,7 @@ class CthulhuLogic(GameLogic):
                 self.turn_group_questions = 0
                 self.turn_direct_questions = 0
                 self.round_group_question_asked = False
+                self.history.append("((event deal_cards))")
                 self.history.append(f"(round {self.round_number})")
                 return MoveResult(True, "")
 
