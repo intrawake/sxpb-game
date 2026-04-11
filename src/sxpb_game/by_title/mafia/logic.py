@@ -575,7 +575,7 @@ class MafiaLogic(GameLogic):
                 target_str = parts[1]
                 if target_str.lower() == "none":
                     self.day_votes[p_idx] = None
-                    self.history.append(f"(vote {p_str} none)")
+                    self.history.append(f'({p_str} "vote none")')
                 else:
                     if not target_str.startswith("p"):
                         return MoveResult(False, "")
@@ -587,7 +587,7 @@ class MafiaLogic(GameLogic):
                         return MoveResult(False, "")
 
                     self.day_votes[p_idx] = t_idx
-                    self.history.append(f"(vote {p_str} p{t_idx + 1})")
+                    self.history.append(f'({p_str} "vote p{t_idx + 1}")')
 
                 self.vote_idx += 1
 
