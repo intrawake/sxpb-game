@@ -4,13 +4,7 @@
  (fullname aistudio/gemini-3.1-flash-lite-preview)
 )
 
-(dono-gemma4-26a4b
- (fullname aistudio/gemma-4-26b-a4b-it)
-)
-(local-gemma4-26a4b
- (fullname llama.cpp/unsloth-gemma-4-it-26A4B:MXFP4_MOE)
-)
-(dono-gemma4-31b
+(dono-gemma
  (fullname aistudio/gemma-4-31b-it)
 )
 
@@ -22,6 +16,16 @@
 )
 (local-gemma3-27b
  (fullname llama.cpp/unsloth-gemma-3-27b-it:Q6_K)
+)
+
+(dono-gemma4-26a4b
+ (fullname aistudio/gemma-4-26b-a4b-it)
+)
+(local-gemma4-26a4b
+ (fullname llama.cpp/unsloth-gemma-4-it-26A4B:MXFP4_MOE)
+)
+(dono-gemma4-31b
+ (fullname aistudio/gemma-4-31b-it)
 )
 
 (dono-magistral-medium

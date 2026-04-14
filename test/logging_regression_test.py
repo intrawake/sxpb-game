@@ -27,9 +27,7 @@ def test_logging_on_api_failure():
         verbose_file = os.path.join(tmp_dir, "verbose.jsonl")
 
         cmd = [
-            "pdm",
-            "run",
-            "python3",
+            sys.executable,
             SERVER_PY,
             "--openai_api_url",
             "http://localhost:11434/v1",
