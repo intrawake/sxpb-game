@@ -72,6 +72,7 @@ def test_say_command_resumed_players_bug():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",

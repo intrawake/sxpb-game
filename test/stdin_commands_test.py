@@ -69,6 +69,7 @@ def test_retry_command_interrupts_call_api():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",
@@ -139,6 +140,7 @@ def test_view_prompt_history_commands():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",
@@ -218,6 +220,7 @@ def test_suspend_resume_commands():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",
@@ -299,6 +302,7 @@ def test_say_command():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",
@@ -386,6 +390,7 @@ def test_suspend_with_count_command():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",
@@ -483,6 +488,7 @@ def test_resume_preserves_player_suspension():
             "sys.argv",
             [
                 "server.py",
+                "--interactive",
                 "--game",
                 "tictactoe",
                 "--openai_api_url",

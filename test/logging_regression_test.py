@@ -31,6 +31,7 @@ def test_logging_on_api_failure():
             SERVER_PY,
             "--openai_api_url",
             "http://localhost:11434/v1",
+            "--interactive",
             "--game",
             "tictactoe",
             "--players",

@@ -115,6 +115,17 @@ def main():
         help="Filepath to write the final player-0 view of the game (SxPB) to",
     )
     parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Enable stdin interactive interface for server management",
+    )
+    parser.add_argument(
+        "--retry_limit",
+        type=int,
+        default=3,
+        help="Maximum number of retries for failed LLM responses",
+    )
+    parser.add_argument(
         "--model_by_name",
         default=os.path.join(
             os.path.dirname(__file__), "..", "preset", "model_by_name.sxpb"
@@ -793,7 +804,7 @@ def main():
 
             messages = [{"role": "user", "content": prompt}]
             attempt = 0
-            while attempt < 3:
+            while attempt < args.retry_limit:
                 with game_lock:
                     server_state["llm_thread"] = threading.get_ident()
 
@@ -904,6 +915,13 @@ def main():
                         )
                         attempt += 1
 
+            if not args.interactive:
+                sys.stdout.write(
+                    f"LLM Move failed repeatedly for {curr_player_id}. Terminating since not in interactive mode.\n"
+                )
+                sys.stdout.flush()
+                write_logs_and_exit(1)
+
             sys.stdout.write(
                 f"LLM Move failed repeatedly for {curr_player_id}. Waiting for user intervention (type 'retry', 'msg <text>', or 'quit').\n"
             )
@@ -1007,7 +1025,8 @@ def main():
 
         sys.stdout.write("Server is live. Waiting for players on private channels...\n")
         sys.stdout.flush()
-        threading.Thread(target=stdin_listener, daemon=True).start()
+        if args.interactive:
+            threading.Thread(target=stdin_listener, daemon=True).start()
 
         process_automated_turn()
 

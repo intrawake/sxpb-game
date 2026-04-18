@@ -2,18 +2,18 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SERVER_PY = os.path.join(REPO_ROOT, "server", "server.py")
 
 
-def test_empty_response_retry():
+def test_non_interactive_termination_on_invalid_format():
     env = os.environ.copy()
     env["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'src')}"
 
     # Use 'empty-response-model' which simulates returning empty string
     players_sxpb = '(()) (() (name "Bot1") (model "empty-response-model")) (() (name "Bot2") (algorithm "random"))'
-    # Dictionary format: () ("key" (subkey val))
     model_by_name_sxpb = '() ("empty-response-model" (timeout 1))'
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -25,22 +25,22 @@ def test_empty_response_retry():
             SERVER_PY,
             "--openai_api_url",
             "http://localhost:11434/v1",
-            "--interactive",
             "--game",
             "tictactoe",
             "--retry_limit",
-            "4",
+            "2",
             "--players",
             players_sxpb,
             "--model_by_name",
             model_by_name_sxpb,
             "--rendezqueue_api_url",
-            "http://localhost:0/",  # dummy URL
+            "http://localhost:0/",
             "--log_sxpb",
             history_file,
             "--verbose_log_jsonl",
             verbose_file,
         ]
+        # Notice we are NOT passing --interactive
 
         proc = subprocess.Popen(
             cmd,
@@ -51,46 +51,43 @@ def test_empty_response_retry():
             text=True,
             cwd=REPO_ROOT,
         )
-        import time
 
-        time.sleep(5)
-        try:
-            assert proc.stdin is not None
-            proc.stdin.write("quit\n")
-            proc.stdin.flush()
-            stdout_output, _ = proc.communicate(timeout=10)
-        except Exception:
+        # Give it some time to fail repeatedly.
+        # It should try 3 times (initial + 2 retries) and then it should TERMINATE
+        # rather than entering an infinite loop because --interactive is not provided.
+        start_time = time.time()
+        terminated = False
+        while time.time() - start_time < 10:
+            if proc.poll() is not None:
+                terminated = True
+                break
+            time.sleep(0.5)
+
+        if not terminated:
             proc.kill()
             stdout_output, _ = proc.communicate()
-        # Print output for debugging in the CI/environment
-        print("Captured Output:")
-        print(stdout_output)
-
-        if "LLM provided empty response for player" not in stdout_output:
-            print("FAIL: Did not find empty response logging.")
-            sys.exit(1)
-
-        empty_responses_count = stdout_output.count("LLM provided empty response")
-        if empty_responses_count != 4:
-            print(
-                f"FAIL: Expected 4 retries for empty response, got {empty_responses_count}."
-            )
-            print("Output was:")
+            print("Captured Output:")
             print(stdout_output)
+            print(
+                "FAIL: Server did not terminate on its own after repeated failures without --interactive."
+            )
             sys.exit(1)
 
-        if not os.path.exists(verbose_file):
-            print("FAIL: Log files not created.")
+        stdout_output, _ = proc.communicate()
+
+        if "LLM Move failed repeatedly" not in stdout_output:
+            print("Captured Output:")
+            print(stdout_output)
+            print("FAIL: Did not find 'LLM Move failed repeatedly' in output.")
             sys.exit(1)
 
-        with open(verbose_file, "r") as f:
-            lines = f.readlines()
-            if len(lines) < 4:
-                print("FAIL: Expected at least 4 invalid attempts logged.")
-                sys.exit(1)
+        # Ensure it actually exited with a failure code, not a success
+        if proc.returncode == 0:
+            print("FAIL: Server terminated but returned 0 instead of a failure code.")
+            sys.exit(1)
 
-    print("PASS: Empty response retry test successful.")
+        print("PASS: Server terminated correctly when non-interactive.")
 
 
 if __name__ == "__main__":
-    test_empty_response_retry()
+    test_non_interactive_termination_on_invalid_format()

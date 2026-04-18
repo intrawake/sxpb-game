@@ -29,7 +29,7 @@ check-type = "ty check"
 tidy = "ruff format"
 lint = {composite = ["check-format", "check-type"]}
 tidytest = {composite = ["test", "tidy", "lint"]}
-test = "pytest"
+test = "pytest -q"
 server = "python server/server.py --model_by_name preset/model_by_name.sxpb"
 client = "python server/client.py"
 benchmark-position = "python benchmark/position/eval.py --model_by_name preset/model_by_name.sxpb"
