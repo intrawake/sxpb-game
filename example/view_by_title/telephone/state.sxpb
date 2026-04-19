@@ -1,0 +1,7 @@
+(table
+ (phase JUDGE)
+ (quirk_by_player
+  (p1 "speaks like a pirate")
+  (p2 "speaks like a caveman")
+ )
+)

@@ -1,0 +1,20 @@
+(table
+ (flashlight p4)
+ (turn_countdown 1)
+ (round_countdown 4)
+ (elder_sign_reveal_count 1)
+ (hand_by_player ()
+  (p1
+   (role Investigator)
+   (blank_count 4)
+   (cthulhu_count 0)
+   (elder_sign_count 0)
+  )
+  (p2 (count 4))
+  (p3 (count 5))
+  (p4 (count 4))
+ )
+)
+
+(elder_sign_total 4)
+(cultist_count_range (min 1) (max 2))

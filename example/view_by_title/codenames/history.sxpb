@@ -1,0 +1,4 @@
+((history)
+  (p1 "FRUIT 2") (p3 APPLE) (reveal red) (p3 BANANA) (reveal red) (p3 ".")
+  (p2 "ROYAL 1") (p4 QUEEN) (reveal blue) (p4 ".")
+)

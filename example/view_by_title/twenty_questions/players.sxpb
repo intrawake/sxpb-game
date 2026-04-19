@@ -1,0 +1,5 @@
+(())
+
+(() (premoves (()) Elephant yes yes yes))
+
+(() (premoves (()) "Is it an animal?" "Is it big?" "Does it have a trunk?" Elephant))

@@ -1,0 +1,7 @@
+((history)
+  ((event deal_cards))
+  (round 1)
+  (p1 "p3? Hey buddy, what you got?") (p3 "Nothing to see here, just a blank.") (p1 "p2!") (reveal p2 Blank)
+  (p2 "p1!") (reveal p1 ElderSign)
+  (p1 "??? Anyone have any signs?") (p2 "I have one more.") (p3 "I have a sign.") (p4 "I have two signs! (Lying)") (p1 "p4!") (reveal p4 Blank)
+)

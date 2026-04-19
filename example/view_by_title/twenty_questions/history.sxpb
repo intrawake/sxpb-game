@@ -1,0 +1,7 @@
+; --- Q&A History ---
+((history)
+ (p1 "Is it an animal?") (p0 yes)
+ (p1 "Is it big?") (p0 yes)
+ (p1 "Does it have a trunk?") (p0 yes)
+ (p1 "Elephant") (p0 "[Guessed correctly!]")
+)

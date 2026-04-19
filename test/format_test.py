@@ -17,6 +17,36 @@ from sxpb_game.by_title.sudoku.logic import SudokuLogic
 from sxpb_game.by_title.trolley.logic import TrolleyLogic
 from sxpb_game.by_title.wordle.logic import WordleLogic
 from sxpb_game.by_title.minesweeper.logic import MinesweeperLogic
+from sxpb_game.by_title.resistance.logic import ResistanceLogic
+from sxpb_game.by_title.chameleon.logic import ChameleonLogic
+from sxpb_game.by_title.twenty_questions.logic import TwentyQuestionsLogic
+from sxpb_game.by_title.codenames.logic import CodenamesLogic
+from sxpb_game.by_title.telephone.logic import TelephoneLogic
+from sxpb_game.by_title.cthulhu.logic import CthulhuLogic
+from sxpb_game.by_title.old_maid.logic import OldMaidLogic
+from sxpb_game.by_title.skull.logic import SkullLogic
+
+
+def get_all_game_titles() -> list[str]:
+    base_dir = os.path.join(
+        os.path.dirname(__file__), "..", "src", "sxpb_game", "by_title"
+    )
+    titles = []
+    for entry in os.listdir(base_dir):
+        if os.path.isdir(os.path.join(base_dir, entry)) and entry != "__pycache__":
+            titles.append(entry)
+    return sorted(titles)
+
+
+def get_all_example_titles() -> list[str]:
+    base_dir = os.path.join(os.path.dirname(__file__), "..", "example", "view_by_title")
+    if not os.path.exists(base_dir):
+        return []
+    titles = []
+    for entry in os.listdir(base_dir):
+        if os.path.isdir(os.path.join(base_dir, entry)):
+            titles.append(entry)
+    return sorted(titles)
 
 
 def normalize_sxpb(text: str) -> str:
@@ -25,20 +55,24 @@ def normalize_sxpb(text: str) -> str:
     return "\n".join(lines)
 
 
-@pytest.mark.parametrize(
-    "game_title",
-    [
-        "tictactoe",
-        "mafia",
-        "blackjack",
-        "connect_four",
-        "mastermind",
-        "sudoku",
-        "trolley",
-        "wordle",
-        "minesweeper",
-    ],
-)
+def test_directory_consistency() -> None:
+    logic_titles = set(get_all_game_titles())
+    example_titles = set(get_all_example_titles())
+
+    missing_examples = logic_titles - example_titles
+    extra_examples = example_titles - logic_titles
+
+    msg = ""
+    if missing_examples:
+        msg += f"Logic titles missing example directories: {sorted(list(missing_examples))}\n"
+    if extra_examples:
+        msg += f"Example directories with no corresponding logic: {sorted(list(extra_examples))}\n"
+
+    if msg:
+        assert False, msg
+
+
+@pytest.mark.parametrize("game_title", get_all_game_titles())
 def test_game_format(game_title: str) -> None:
     example_dir = os.path.join(
         os.path.dirname(__file__), "..", "example", "view_by_title", game_title
@@ -46,6 +80,10 @@ def test_game_format(game_title: str) -> None:
     history_sxpb_path = os.path.join(example_dir, "history.sxpb")
     state_sxpb_path = os.path.join(example_dir, "state.sxpb")
     players_sxpb_path = os.path.join(example_dir, "players.sxpb")
+
+    if not os.path.exists(state_sxpb_path) or not os.path.exists(players_sxpb_path):
+        # We handle the error here in case test_directory_consistency didn't fail first
+        pytest.skip(f"Example files missing for {game_title}")  # type: ignore
 
     expected_history = ""
     if os.path.exists(history_sxpb_path):
@@ -83,8 +121,69 @@ def test_game_format(game_title: str) -> None:
     elif game_title == "minesweeper":
         game = MinesweeperLogic()
         test_player_idx = 1
+    elif game_title == "resistance":
+        game = ResistanceLogic(num_players=6)
+        test_player_idx = 1
+    elif game_title == "chameleon":
+        game = ChameleonLogic(num_players=6)
+        test_player_idx = 1
+    elif game_title == "twenty_questions":
+        game = TwentyQuestionsLogic()
+        test_player_idx = 1
+    elif game_title == "codenames":
+        # Need deterministic words for the test
+        import unittest.mock
+
+        with (
+            unittest.mock.patch("random.sample") as mock_sample,
+            unittest.mock.patch("random.shuffle"),
+        ):
+            words = [
+                "APPLE",
+                "BANANA",
+                "CHERRY",
+                "DOG",
+                "ELEPHANT",
+                "FROG",
+                "GRAPE",
+                "HOUSE",
+                "ICE",
+                "JACKET",
+                "KITE",
+                "LEMON",
+                "MOUSE",
+                "NIGHT",
+                "ORANGE",
+                "PIANO",
+                "QUEEN",
+                "RIVER",
+                "SNAKE",
+                "TIGER",
+                "UMBRELLA",
+                "VIOLIN",
+                "WHALE",
+                "XYLOPHONE",
+                "YACHT",
+            ]
+            mock_sample.return_value = words
+            game = CodenamesLogic()
+        test_player_idx = 1
+    elif game_title == "telephone":
+        game = TelephoneLogic(num_players=3)
+        test_player_idx = 0
+    elif game_title == "cthulhu":
+        game = CthulhuLogic(num_players=5)
+        test_player_idx = 1
+    elif game_title == "old_maid":
+        game = OldMaidLogic()
+        test_player_idx = 1
+    elif game_title == "skull":
+        game = SkullLogic(num_players=4)
+        test_player_idx = 1
     else:
-        assert False, f"Unknown game {game_title}"
+        assert False, (
+            f"Unknown game {game_title} - logic not imported in format_test.py"
+        )
 
     # We apply the premoves by repeatedly popping from the current player's list
     # until either the game ends or all premoves are exhausted.

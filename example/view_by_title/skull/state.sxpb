@@ -1,0 +1,25 @@
+; --- Skull ---
+
+(table
+ ((phase_as flip)
+  (player p2)
+  (flip_countdown 1)
+ )
+ (stack_by_player ()
+  (p1 (()) Rose Rose)
+  (p2 (()) Rose)
+  (p3 (()) ?)
+ )
+ (hand_by_player ()
+  (p1 (skull_count 1) (rose_count 1))
+  (p2 (count 3))
+  (p3 (count 3))
+ )
+ (score_by_player ()
+  (p1 0)
+  (p2 0)
+  (p3 0)
+ )
+)
+
+(status PLAYING)

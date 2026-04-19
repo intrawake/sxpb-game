@@ -1,0 +1,32 @@
+(())
+
+(()
+ (premoves (())
+  "Investigator Investigator Investigator Cultist"
+  "ElderSign Blank Blank Blank Blank Blank ElderSign Blank Blank Blank Blank Blank Cthulhu Blank Blank Blank Blank Blank ElderSign ElderSign"
+))
+
+(()
+ (premoves (())
+  "p3? Hey buddy, what you got?"
+  "p2!"
+  "??? Anyone have any signs?"
+  "p4!"
+))
+
+(()
+ (premoves (())
+  "p1!"
+  "I have one more."
+))
+
+(()
+ (premoves (())
+  "Nothing to see here, just a blank."
+  "I have a sign."
+))
+
+(()
+ (premoves (())
+  "I have two signs! (Lying)"
+))

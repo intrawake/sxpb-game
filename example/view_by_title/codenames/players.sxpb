@@ -1,0 +1,28 @@
+(())
+
+(()
+ (premoves (())
+))
+
+(()
+ (premoves (())
+  "FRUIT 2"
+))
+
+(()
+ (premoves (())
+  "ROYAL 1"
+))
+
+(()
+ (premoves (())
+  APPLE
+  BANANA
+  .
+))
+
+(()
+ (premoves (())
+  QUEEN
+  .
+))

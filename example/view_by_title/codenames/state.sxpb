@@ -1,0 +1,11 @@
+(table
+ (red (()) CHERRY DOG ELEPHANT FROG GRAPE HOUSE ICE)
+ (blue (()) JACKET KITE LEMON MOUSE NIGHT ORANGE PIANO)
+ (assassin RIVER)
+ (neutral (()) SNAKE TIGER UMBRELLA VIOLIN WHALE XYLOPHONE YACHT)
+)
+
+(score
+ (red 2)
+ (blue 1)
+)

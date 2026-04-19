@@ -1,0 +1,55 @@
+(())
+
+(()
+ (premoves (())
+  "apple banana cherry date elderberry fig grape honeydew kiwi lemon mango nectarine orange papaya quince raspberry"
+  apple
+  p1
+  p2
+  "p1 p3 p4 p5 p2"
+  "p1 p2 p3 p4 p5"
+  "p5 p4 p3 p2 p1"
+  "p2 p3 p4 p5"
+))
+
+(()
+ (premoves (())
+  red
+  "I'm the leader and I know the word."
+  "We'll see."
+))
+
+(()
+ (premoves (())
+  sweet
+  "I also know the word, it's a common fruit."
+  "I didn't want to give too much away."
+  "You guys are wrong, I'm just playing safe."
+  "vote p3"
+  apple
+))
+
+(()
+ (premoves (())
+  round
+  "p2? Why was your association so generic?"
+  "That answer doesn't satisfy me."
+  Yep.
+  "vote p2"
+))
+
+(()
+ (premoves (())
+  crunchy
+  "Generic associations are suspicious."
+  "p2 seems like the best bet."
+  "vote p2"
+))
+
+(()
+ (premoves (())
+  fruit
+  Agreed.
+  "Let's just vote p2."
+  "vote p2"
+))

@@ -1,0 +1,6 @@
+; --- Old Maid ---
+(board
+ (p1_cards (()) SA S3 S4)
+ (p2_cards (()) ? ? ? ?)
+)
+(pair_count_by_player () (p1 2) (p2 0))

@@ -1,0 +1,43 @@
+(())
+
+(()
+ (premoves (())
+  "Resistance Spy Resistance Spy Resistance"
+  "p1 p2 p3 p4 p5"
+))
+
+(()
+ (premoves (())
+  "propose p1 p2"
+  "p1 says something."
+  "vote approve"
+))
+
+(()
+ (premoves (())
+  "vote approve"
+  "play sabotage"
+  "p2 says something."
+  "propose p1 p3 p5"
+))
+
+(()
+ (premoves (())
+  "vote approve"
+  "p3 says something."
+  "vote approve"
+))
+
+(()
+ (premoves (())
+  "vote approve"
+  "p4 says something."
+  "vote approve"
+))
+
+(()
+ (premoves (())
+  "vote approve"
+  "p5 says something."
+  "vote approve"
+))

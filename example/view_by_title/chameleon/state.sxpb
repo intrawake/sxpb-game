@@ -1,0 +1,12 @@
+(table
+ (phase CHAMELEON_GUESS)
+ (words (()) apple banana cherry date elderberry fig grape honeydew kiwi lemon mango nectarine orange papaya quince raspberry)
+ (secret_word apple)
+ (players ()
+  (p1 (role Leader))
+  (p2 (role Chameleon))
+  (p3 (role Player))
+  (p4 (role Player))
+  (p5 (role Player))
+ )
+)

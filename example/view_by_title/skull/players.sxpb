@@ -1,0 +1,9 @@
+(())
+
+(() (premoves (()) ))
+
+(() (premoves (()) "play rose" "play rose" pass))
+
+(() (premoves (()) "play rose" "bid 1" "bid 3" "p3? is that a skull?" "flip p1"))
+
+(() (premoves (()) "play skull" "bid 2" pass maybe...))

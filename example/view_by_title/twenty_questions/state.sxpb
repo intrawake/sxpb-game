@@ -1,0 +1,4 @@
+; --- Twenty Questions ---
+(max_questions 20)
+(questions_asked 4)
+(winner Guesser)

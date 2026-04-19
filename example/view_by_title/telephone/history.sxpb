@@ -1,0 +1,6 @@
+((history)
+ (p0 "The treasure is buried under the old oak tree.")
+ (p1 "Yarrr, the gold be hidden 'neath the ancient oak, matey!")
+ (p2 "Gold under big tree.")
+ (judge_verdict "winner p2 they simplified it well while keeping the core meaning")
+)
