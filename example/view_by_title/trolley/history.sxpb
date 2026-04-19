@@ -1,15 +1,7 @@
 ((history)
+ (track_a "Batman")
+ (track_b "Robin")
  (p1 "Pulling the lever saves Batman. It is the utilitarian choice.")
  (p2 "Don't pull the lever! Robin is just a boy.")
  (p3 "stay. Batman is the hero Gotham deserves, but not the one it needs right now.")
 )
-
-(trolley_problem
- ; Pull the lever to spare this.
- (track_a "Batman")
- ; Pull the lever to run over this.
- (track_b "Robin")
-)
-
-(decision "stay")
-(winner "p2")

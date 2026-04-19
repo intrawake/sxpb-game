@@ -12,49 +12,6 @@ def normalize_sxpb(text):
     return "\n".join(lines)
 
 
-def test_minesweeper_example():
-    example_file = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "..",
-        "example",
-        "view_by_title",
-        "minesweeper.sxpb",
-    )
-
-    with open(example_file, "r") as f:
-        expected_sxpb = f.read().strip()
-
-    # Secret is "a1 b2 c3 d4 e5 f6 g7 h8", passed to GM move.
-    game = MinesweeperLogic(mine_input="a1 b2 c3 d4 e5 f6 g7 h8")
-
-    # Turn 1: Player moves "Oa8"
-    assert game.get_current_player() == 1
-    assert game.make_move(1, "Oa8").success
-
-    # Turn 2: GM sets mines
-    assert game.get_current_player() == 0
-    assert game.make_move(0, "a1 b2 c3 d4 e5 f6 g7 h8").success
-
-    # Turn 3: Player moves "Fa1"
-    assert game.get_current_player() == 1
-    assert game.make_move(1, "Fa1").success
-
-    # The original eval.py print-state uses player 1 view for final output
-    generated_sxpb = game.render_player_view(1).strip()
-
-    if normalize_sxpb(generated_sxpb) == normalize_sxpb(expected_sxpb):
-        print("PASS: Minesweeper output matches expected.")
-    else:
-        print("FAIL: Minesweeper output mismatch")
-        print("Expected:")
-        print(expected_sxpb)
-        print("Got:")
-        print(generated_sxpb)
-        sys.exit(1)
-
-
 def test_minesweeper_multiple_moves():
     game = MinesweeperLogic(mine_input="h8 h7 b8 b1")
 
@@ -103,9 +60,6 @@ def test_minesweeper_multiple_moves_2():
     assert (1, 0) in game.revealed
     assert (2, 0) in game.revealed
 
-
-if __name__ == "__main__":
-    test_minesweeper_example()
     test_minesweeper_multiple_moves()
     print("All Minesweeper tests passed.")
     test_minesweeper_multiple_moves()

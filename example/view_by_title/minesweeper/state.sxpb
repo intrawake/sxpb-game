@@ -1,0 +1,17 @@
+; --- Minesweeper (8x8 Beginner) ---
+(board ("")
+ ; COL a b c d e f g h
+ (row8 0 2 _ _ _ _ _ _)
+ (row7 0 3 _ _ _ _ _ _)
+ (row6 0 3 _ _ _ _ _ _)
+ (row5 0 3 _ _ _ _ _ _)
+ (row4 0 3 _ _ _ _ _ _)
+ (row3 0 3 _ _ _ _ _ _)
+ (row2 0 3 _ _ _ _ _ _)
+ (row1 0 2 _ _ _ _ _ _)
+)
+
+; --- Game Metadata ---
+(total_mines 8)
+(flags_placed 0)
+(state in_progress)

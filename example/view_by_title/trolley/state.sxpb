@@ -1,0 +1,9 @@
+(trolley_problem
+ ; Pull the lever to spare this.
+ (track_a "Batman")
+ ; Pull the lever to run over this.
+ (track_b "Robin")
+)
+
+(decision "stay")
+(winner "p2")

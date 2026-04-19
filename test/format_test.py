@@ -11,6 +11,12 @@ import sxpb
 from sxpb_game.by_title.tictactoe.logic import TicTacToeLogic
 from sxpb_game.by_title.mafia.logic import MafiaLogic
 from sxpb_game.by_title.blackjack.logic import BlackjackLogic
+from sxpb_game.by_title.connect_four.logic import ConnectFourLogic
+from sxpb_game.by_title.mastermind.logic import MastermindLogic
+from sxpb_game.by_title.sudoku.logic import SudokuLogic
+from sxpb_game.by_title.trolley.logic import TrolleyLogic
+from sxpb_game.by_title.wordle.logic import WordleLogic
+from sxpb_game.by_title.minesweeper.logic import MinesweeperLogic
 
 
 def normalize_sxpb(text: str) -> str:
@@ -19,7 +25,20 @@ def normalize_sxpb(text: str) -> str:
     return "\n".join(lines)
 
 
-@pytest.mark.parametrize("game_title", ["tictactoe", "mafia", "blackjack"])
+@pytest.mark.parametrize(
+    "game_title",
+    [
+        "tictactoe",
+        "mafia",
+        "blackjack",
+        "connect_four",
+        "mastermind",
+        "sudoku",
+        "trolley",
+        "wordle",
+        "minesweeper",
+    ],
+)
 def test_game_format(game_title: str) -> None:
     example_dir = os.path.join(
         os.path.dirname(__file__), "..", "example", "view_by_title", game_title
@@ -46,6 +65,23 @@ def test_game_format(game_title: str) -> None:
         game = MafiaLogic(num_players=6)
     elif game_title == "blackjack":
         game = BlackjackLogic()
+        test_player_idx = 1
+    elif game_title == "connect_four":
+        game = ConnectFourLogic()
+    elif game_title == "mastermind":
+        game = MastermindLogic()
+        test_player_idx = 1
+    elif game_title == "sudoku":
+        game = SudokuLogic()
+        test_player_idx = 1
+    elif game_title == "trolley":
+        game = TrolleyLogic()
+        test_player_idx = 3
+    elif game_title == "wordle":
+        game = WordleLogic()
+        test_player_idx = 1
+    elif game_title == "minesweeper":
+        game = MinesweeperLogic()
         test_player_idx = 1
     else:
         assert False, f"Unknown game {game_title}"
