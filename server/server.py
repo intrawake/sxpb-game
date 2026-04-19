@@ -135,7 +135,6 @@ def main():
     parser.add_argument(
         "--openai_api_url",
         dest="openai_api_url",
-        required=True,
         help="OpenAI-compatible API URL (e.g. https://api.openai.com/v1)",
     )
     args = parser.parse_args(new_argv)
@@ -225,17 +224,6 @@ def main():
                     api_kwargs = dict(m_over)
                     if "fullname" in api_kwargs:
                         model = api_kwargs.pop("fullname")
-            else:
-                for m_name, m_over in model_overrides.items():
-                    if (
-                        isinstance(m_over, dict)
-                        and m_over.get("fullname") == requested_model
-                    ):
-                        model = m_name
-                        api_kwargs = dict(m_over)
-                        if "fullname" in api_kwargs:
-                            api_kwargs.pop("fullname")
-                        break
 
         if "temperature" in api_kwargs:
             api_kwargs["temperature"] = float(api_kwargs["temperature"])
@@ -298,6 +286,7 @@ def main():
                             "txt": entry.get("content"),
                             "prompt": entry.get("prompt"),
                             "response": entry.get("raw_response"),
+                            "model": entry.get("model"),
                         }
                         if entry.get("api_req"):
                             rec["api_request"] = entry.get("api_req")
@@ -642,7 +631,13 @@ def main():
             )
 
     def attempt_move(
-        idx, move_str, prompt=None, raw_response=None, api_req=None, api_res=None
+        idx,
+        move_str,
+        prompt=None,
+        raw_response=None,
+        api_req=None,
+        api_res=None,
+        model=None,
     ):
         move_failed_reason = None
         if move_str is None:
@@ -673,6 +668,7 @@ def main():
                 "raw_response": raw_response,
                 "api_request": api_req,
                 "api_res": api_res,
+                "model": model,
             }
         )
         return valid, move_failed_reason
@@ -792,6 +788,16 @@ def main():
     def process_llm_turn(idx, curr_player_id, conf):
         model, reasoning_effort, req_timeout, api_kwargs = get_model_config(conf)
 
+        if (
+            model not in ["non-existent-model", "empty-response-model"]
+            and not args.openai_api_url
+        ):
+            sys.stdout.write(
+                f"Error: Player {curr_player_id} is an LLM, but --openai_api_url was not provided.\n"
+            )
+            sys.stdout.flush()
+            write_logs_and_exit(1)
+
         def llm_worker():
             nonlocal turns_taken
             with game_lock:
@@ -834,7 +840,7 @@ def main():
                         server_state["llm_thread"] = None
                 if not content:
                     valid, reason = attempt_move(
-                        idx, None, prompt=messages[-1]["content"]
+                        idx, None, prompt=messages[-1]["content"], model=model
                     )
                     sys.stdout.write(
                         f"LLM provided empty response for player {curr_player_id}.\n"
@@ -889,6 +895,7 @@ def main():
                         raw_response=content,
                         api_req=api_req,
                         api_res=api_res,
+                        model=model,
                     )
                     if valid:
                         sys.stdout.write(
@@ -1084,6 +1091,16 @@ def main():
                     get_model_config(conf)
                 )
 
+                if (
+                    model not in ["non-existent-model", "empty-response-model"]
+                    and not args.openai_api_url
+                ):
+                    sys.stdout.write(
+                        f"Warning: Skipping post-game analysis for {p_id} because --openai_api_url was not provided.\n"
+                    )
+                    sys.stdout.flush()
+                    return
+
                 with game_lock:
                     state_sxpb = game.render_player_view(idx).strip()
                     history_sxpb = getattr(game, "render_player_history", lambda i: "")(
@@ -1151,6 +1168,7 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
                                 "raw_response": content,
                                 "api_req": api_req,
                                 "api_res": api_res,
+                                "model": model,
                             }
                         )
 
@@ -1209,6 +1227,7 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
                         "txt": entry.get("content"),
                         "prompt": entry.get("prompt"),
                         "response": entry.get("raw_response"),
+                        "model": entry.get("model"),
                     }
                     if entry.get("api_req"):
                         rec["api_request"] = entry.get("api_req")

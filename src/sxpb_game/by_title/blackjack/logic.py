@@ -242,7 +242,6 @@ class BlackjackLogic(GameLogic):
 
         player_val = hand_value(self.player_hand)
         soft_str = " (Soft)" if is_soft(self.player_hand) else ""
-
         return f"""; --- Blackjack (6 Decks) ---
 (board
  (dealer (()) {dealer_display})

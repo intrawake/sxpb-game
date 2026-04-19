@@ -230,7 +230,8 @@ class ResistanceLogic(GameLogic):
             squad_str = " ".join([f"p{i + 1}" for i in squad])
             self.history.append(f'(p{player_idx} "propose {squad_str}")')
             self.phase = "VOTE_ON_SQUAD"
-            self.squad_votes = {}
+            self.squad_votes = {p_idx: "approve"}
+            self.history.append(f'(p{player_idx} "vote approve") ; private')
             return MoveResult(True, "")
 
         if self.phase == "VOTE_ON_SQUAD":
@@ -242,7 +243,7 @@ class ResistanceLogic(GameLogic):
                 return MoveResult(False, "Must 'vote approve' or 'vote reject'.")
 
             self.squad_votes[p_idx] = vote_val
-            self.history.append(f'(private p{player_idx} "vote {vote_val}")')
+            self.history.append(f'(p{player_idx} "vote {vote_val}") ; private')
 
             if len(self.squad_votes) == self.num_players:
                 votes_str = " ".join(
@@ -259,6 +260,13 @@ class ResistanceLogic(GameLogic):
                     self.vote_track = 0
                     self.phase = "MISSION_VOTE"
                     self.mission_votes = {}
+                    for p in self.proposed_squad:
+                        if self.teams[p] == "Resistance":
+                            self.mission_votes[p] = "success"
+                            self.history.append(f'(p{p + 1} "play success") ; private')
+
+                    if len(self.mission_votes) == len(self.proposed_squad):
+                        self._resolve_mission()
                 else:
                     self.history.append("((event squad_rejected))")
                     self.vote_track += 1
@@ -289,46 +297,47 @@ class ResistanceLogic(GameLogic):
                 return MoveResult(False, "Resistance players must play success.")
 
             self.mission_votes[p_idx] = play_val
-            self.history.append(f'(private p{player_idx} "play {play_val}")')
+            self.history.append(f'(p{player_idx} "play {play_val}") ; private')
 
             if len(self.mission_votes) == len(self.proposed_squad):
-                sabotages = list(self.mission_votes.values()).count("sabotage")
-                self.completed_missions.append(
-                    {"squad": self.proposed_squad.copy(), "sabotage_count": sabotages}
-                )
-
-                required_fails = 1
-                if self.num_players >= 7 and self.round == 4:
-                    required_fails = 2
-
-                self.history.append(
-                    f"((event mission_resolved) (sabotages {sabotages}))"
-                )
-
-                if sabotages >= required_fails:
-                    self.score_spies += 1
-                    self.history.append("((event mission_failed))")
-                else:
-                    self.score_resistance += 1
-                    self.history.append("((event mission_succeeded))")
-
-                if self.score_resistance >= 3:
-                    self.game_over = True
-                    self.result = "Resistance"
-                    self.history.append("((event game_over) (winning_team Resistance))")
-                elif self.score_spies >= 3:
-                    self.game_over = True
-                    self.result = "Spy"
-                    self.history.append("((event game_over) (winning_team Spy))")
-                else:
-                    self.round += 1
-                    self.leader_idx = (self.leader_idx + 1) % self.num_players
-                    self.proposed_squad = []
-                    self.phase = "DISCUSSION_ORDER"
+                self._resolve_mission()
 
             return MoveResult(True, "")
 
         return MoveResult(False, "Invalid move.")
+
+    def _resolve_mission(self):
+        sabotages = list(self.mission_votes.values()).count("sabotage")
+        self.completed_missions.append(
+            {"squad": self.proposed_squad.copy(), "sabotage_count": sabotages}
+        )
+
+        required_fails = 1
+        if self.num_players >= 7 and self.round == 4:
+            required_fails = 2
+
+        self.history.append(f"((event mission_resolved) (sabotages {sabotages}))")
+
+        if sabotages >= required_fails:
+            self.score_spies += 1
+            self.history.append("((event mission_failed))")
+        else:
+            self.score_resistance += 1
+            self.history.append("((event mission_succeeded))")
+
+        if self.score_resistance >= 3:
+            self.game_over = True
+            self.result = "Resistance"
+            self.history.append("((event game_over) (winning_team Resistance))")
+        elif self.score_spies >= 3:
+            self.game_over = True
+            self.result = "Spy"
+            self.history.append("((event game_over) (winning_team Spy))")
+        else:
+            self.round += 1
+            self.leader_idx = (self.leader_idx + 1) % self.num_players
+            self.proposed_squad = []
+            self.phase = "DISCUSSION_ORDER"
 
     def render_player_history(self, player_idx: int) -> str:
         if not self.history:
@@ -342,22 +351,18 @@ class ResistanceLogic(GameLogic):
             visible = False
             rendered = h
 
-            if h.startswith("(private "):
-                inner = h[9:-1]
-                parts = inner.split(maxsplit=1)
-                if len(parts) >= 2:
-                    actor = parts[0]
-                    rest = parts[1]
-                    try:
-                        a_idx = int(actor[1:]) - 1
-                        is_self = player_idx == a_idx + 1
-                        if is_gm or is_over or is_self:
-                            visible = True
-                            rendered = '({} "{}")'.format(
-                                actor, rest.replace('"', "").strip()
-                            )
-                    except ValueError:
-                        pass
+            if " ; private" in h:
+                parts = h.split(" ; ", 1)
+                base = parts[0].strip()
+                actor_str = base.split(maxsplit=1)[0].strip("(")
+                try:
+                    a_idx = int(actor_str[1:]) - 1
+                    is_self = player_idx == a_idx + 1
+                    if is_gm or is_over or is_self:
+                        visible = True
+                        rendered = base
+                except (ValueError, IndexError):
+                    pass
             else:
                 visible = True
 
@@ -426,7 +431,7 @@ class ResistanceLogic(GameLogic):
             if show_team and self.teams:
                 board += f"  (p{p_id} (team {self.teams[i]}))\n"
             else:
-                board += f"  (p{p_id} (()))\n"
+                board += f"  (p{p_id})\n"
 
         board += " )\n"
         board += ")\n"

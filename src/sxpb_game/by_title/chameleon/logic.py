@@ -203,7 +203,7 @@ class ChameleonLogic(GameLogic):
                     self.vote_idx = 0
                     self.day_votes = {}
                     self.phase = "DAY_VOTE"
-                self.history.append(f"((event order_players) (()) {order_str})")
+                self.history.append(f"((event order_players) {order_str})")
                 return MoveResult(True, "")
         p_idx = player_idx - 1
         p_str = f"p{player_idx}"

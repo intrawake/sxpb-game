@@ -281,7 +281,7 @@ class MafiaLogic(GameLogic):
         p_str = f"p{player_idx}"
 
         if self.phase == "NIGHT_MAFIA_DISCUSSION":
-            self.history.append(f'(private {p_str} "{move}")')
+            self.history.append(f'({p_str} "{move}") ; private')
             self.mafia_discussion_turns += 1
 
             mafia_count = sum(
@@ -337,7 +337,7 @@ class MafiaLogic(GameLogic):
 
                 self.night_kill_target = winner
                 self.history.append(
-                    f"(private Mafia_kill_decision p{self.night_kill_target + 1})"
+                    f"(Mafia_kill_decision p{self.night_kill_target + 1}) ; Mafia"
                 )
 
                 # Check if doctor exists and is alive
@@ -381,7 +381,7 @@ class MafiaLogic(GameLogic):
 
                 self.doctor_save_target = t_idx
                 self.last_saved_player = t_idx
-                self.history.append(f"(private {p_str} Doctor_save p{t_idx + 1})")
+                self.history.append(f'({p_str} "save p{t_idx + 1}") ; private')
 
                 det_exists = any(
                     r == "Detective" and a for r, a in zip(self.roles, self.alive)
@@ -411,9 +411,7 @@ class MafiaLogic(GameLogic):
 
                         self.doctor_save_target = t_idx
                         self.last_saved_player = t_idx
-                        self.history.append(
-                            f"(private {p_str} Doctor_save p{t_idx + 1})"
-                        )
+                        self.history.append(f'({p_str} "save p{t_idx + 1}") ; private')
                         det_exists = any(
                             r == "Detective" and a
                             for r, a in zip(self.roles, self.alive)
@@ -468,7 +466,7 @@ class MafiaLogic(GameLogic):
                         is_mafia = self.roles[t_idx] == "Mafia"
                         result = "Mafia" if is_mafia else "Not_Mafia"
                         self.history.append(
-                            f"(private {p_str} Detective_investigate p{t_idx + 1} result {result})"
+                            f'({p_str} "investigate p{t_idx + 1}") ; Detective result {result}'
                         )
                         vig_exists = any(
                             r == "Vigilante" and a
@@ -484,7 +482,7 @@ class MafiaLogic(GameLogic):
 
         if self.phase == "NIGHT_VIGILANTE":
             if parts[0].lower() == "skip":
-                self.history.append(f"(private {p_str} Vigilante_skip)")
+                self.history.append(f'({p_str} "skip") ; private')
                 self._resolve_night()
                 return MoveResult(True, "")
             if parts[0].lower() == "shoot" and len(parts) >= 2:
@@ -500,7 +498,7 @@ class MafiaLogic(GameLogic):
 
                 self.vigilante_target = t_idx
                 self.vigilante_has_shot = True
-                self.history.append(f"(private {p_str} Vigilante_shoot p{t_idx + 1})")
+                self.history.append(f'({p_str} "shoot p{t_idx + 1}") ; private')
                 self._resolve_night()
                 return MoveResult(True, "")
 
@@ -512,9 +510,7 @@ class MafiaLogic(GameLogic):
                     if 0 <= t_idx < self.num_players and self.alive[t_idx]:
                         self.vigilante_target = t_idx
                         self.vigilante_has_shot = True
-                        self.history.append(
-                            f"(private {p_str} Vigilante_shoot p{t_idx + 1})"
-                        )
+                        self.history.append(f'({p_str} "shoot p{t_idx + 1}") ; private')
                         self._resolve_night()
                         return MoveResult(True, "")
                 except ValueError:
@@ -711,87 +707,41 @@ class MafiaLogic(GameLogic):
             visible = False
             rendered = h
 
-            # 1. Determine Visibility & Reformat Private actions
-            if h.startswith("(private "):
-                inner = h[9:-1]  # Strip "(private " and ")"
-                parts = inner.split(maxsplit=1)
-                if len(parts) >= 2:
-                    actor = parts[0]
-                    rest = parts[1]
-                    if actor == "Mafia_kill_decision":
-                        if is_gm or is_over or my_role == "Mafia":
-                            visible = True
-                            rendered = f"((event mafia_kill_decision) {rest})"
-                    elif actor.startswith("p"):
-                        try:
-                            a_idx = int(actor[1:]) - 1
-                            is_self = player_idx == a_idx + 1
-
-                            if rest.startswith('"'):
-                                # Mafia discussion: (private pX "msg")
-                                if (
-                                    is_gm
-                                    or is_over
-                                    or is_self
-                                    or (
-                                        my_role == "Mafia"
-                                        and self.roles[a_idx] == "Mafia"
-                                    )
-                                ):
-                                    visible = True
-                                    rendered = f"({actor} {rest})"
-                            else:
-                                # Private action: (private pX Action target [result Res])
-                                if is_gm or is_over or is_self:
-                                    visible = True
-                                    # Split rest into action and target
-                                    action_parts = rest.split(maxsplit=1)
-                                    raw_action = action_parts[0]
-                                    raw_target = (
-                                        action_parts[1] if len(action_parts) > 1 else ""
-                                    )
-                                    action = (
-                                        raw_action.lower()
-                                        .replace("doctor_", "")
-                                        .replace("detective_", "")
-                                        .replace("vigilante_", "")
-                                    )
-                                    rendered = f'({actor} "{(action + " " + raw_target).strip()}")'
-                        except ValueError:
-                            pass
-            elif h.startswith("(p") and '"' in h:
-                # Potential public or role-restricted message with comment
-                # e.g. (p1 "kill p2") ; Mafia
-                # e.g. (p1 "investigate p2") ; Detective result Not_Mafia
+            if " ; " in h:
                 parts = h.split(" ; ", 1)
                 base = parts[0].strip()
-                comment = parts[1] if len(parts) > 1 else ""
+                comment = parts[1].strip()
 
-                if comment.lower().startswith("mafia"):
-                    if is_gm or is_over or my_role == "Mafia":
+                # Extract actor
+                actor = base.split(maxsplit=1)[0].strip("(")
+                a_idx = -1
+                if actor.startswith("p"):
+                    try:
+                        a_idx = int(actor[1:]) - 1
+                    except ValueError:
+                        pass
+                is_self = player_idx == a_idx + 1
+
+                if comment.lower() == "private":
+                    if is_gm or is_over or is_self:
                         visible = True
                         rendered = base
-                elif "detective result" in comment.lower():
-                    # (pX "investigate pY") ; Detective result Z
-                    actor_str = base.strip("()").split(maxsplit=1)[0]
-                    if (
-                        is_gm
-                        or is_over
-                        or (
-                            actor_str.startswith("p")
-                            and player_idx == int(actor_str[1:])
-                        )
-                    ):
+                elif comment.lower().startswith("mafia"):
+                    if is_gm or is_over or my_role == "Mafia" or is_self:
                         visible = True
-                        # For detective, we might want to include the result even if reformatted
-                        # The user's example didn't cover this, so let's keep the comment for now but clean it.
+                        rendered = base
+                        if actor == "Mafia_kill_decision":
+                            rendered = f"((event mafia_kill_decision) {base.split(maxsplit=1)[1].strip(')')})"
+                elif "detective result" in comment.lower():
+                    if is_gm or is_over or is_self:
+                        visible = True
                         rendered = h.strip()
                 else:
-                    # Public message or other comment
+                    # Fallback for other comments
                     visible = True
                     rendered = base
             else:
-                # Events or votes
+                # Events or other non-commented entries
                 visible = True
                 rendered = h
 
@@ -811,10 +761,7 @@ class MafiaLogic(GameLogic):
         investigated_p_ids = set()
         if player_idx > 0 and self.roles and self.roles[player_idx - 1] == "Detective":
             for h in self.history:
-                if (
-                    h.startswith(f"(p{player_idx} ")
-                    or h.startswith(f"(private p{player_idx} ")
-                ) and "investigate p" in h:
+                if h.startswith(f"(p{player_idx} ") and "investigate p" in h:
                     for p_id in range(1, self.num_players + 1):
                         if f"investigate p{p_id}" in h:
                             investigated_p_ids.add(p_id)

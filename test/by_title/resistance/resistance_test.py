@@ -18,8 +18,8 @@ def test_resistance_basic_flow():
     assert res.success
     assert game.phase == "VOTE_ON_SQUAD"
 
-    # Everyone votes
-    for i in range(1, 6):
+    # Everyone else votes (leader p1 already voted approve)
+    for i in range(2, 6):
         assert game.make_move(i, "vote approve").success
 
     assert game.phase == "MISSION_VOTE"
@@ -27,6 +27,7 @@ def test_resistance_basic_flow():
 
     # p1 and p2 are on squad
     # p1 is Spy, p2 is Spy
+    # (Since they are spies, they are NOT automated)
     assert game.make_move(1, "play sabotage").success
     assert game.make_move(2, "play sabotage").success
 
@@ -59,6 +60,8 @@ def test_five_failed_votes():
         assert leader is not None
         assert game.make_move(leader, "propose p1 p2").success
         for i in range(1, 6):
+            if i == leader:
+                continue
             game.make_move(i, "vote reject")
 
         assert game.phase == "DISCUSSION_ORDER"
@@ -74,6 +77,8 @@ def test_five_failed_votes():
     assert leader is not None
     game.make_move(leader, "propose p1 p2")
     for i in range(1, 6):
+        if i == leader:
+            continue
         game.make_move(i, "vote reject")
 
     assert game.is_game_over()
@@ -93,15 +98,18 @@ def test_two_fails_required():
     assert game.make_move(leader, "propose p1 p2 p3 p4").success
 
     for i in range(1, 9):
+        if i == leader:
+            continue
         game.make_move(i, "vote approve")
 
     assert game.phase == "MISSION_VOTE"
 
+    # p1, p2, p3 are Spies (from DEAL_ROLES)
+    # p4 is Resistance (from DEAL_ROLES) -> automatically plays success
     # 1 fail, but 2 required, so mission should succeed
     game.make_move(1, "play sabotage")  # Spy
-    game.make_move(2, "play success")
-    game.make_move(3, "play success")
-    game.make_move(4, "play success")
+    game.make_move(2, "play success")  # Spy (playing along)
+    game.make_move(3, "play success")  # Spy (playing along)
 
     assert game.phase == "DISCUSSION_ORDER"
     assert game.score_resistance == 1

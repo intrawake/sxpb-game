@@ -160,7 +160,7 @@ class TwentyQuestionsLogic(GameLogic):
 
         if self.phase == "answer_question" and self.current_question:
             # Just print the literal string since it might have spaces
-            lines.append(f"(pending_question (()) {self.current_question})")
+            lines.append(f"(pending_question {self.current_question})")
 
         if self.is_game_over() and self.winner is not None:
             winner_name = self.get_player_identifiers()[self.winner]

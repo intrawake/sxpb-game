@@ -152,8 +152,8 @@ class ConnectFourLogic(GameLogic):
         row1 = " ".join(get_row_list(5))
 
         player_full = "RED" if self.current_player == "R" else "YELLOW"
-
-        return f"""; --- Connect Four (7 Columns x 6 Rows) ---
+        return f"""\
+; --- Connect Four (7 Columns x 6 Rows) ---
 (board
  ; Columns: a b c d e f g
  (row6 (()) {row6})

@@ -270,7 +270,7 @@ def generate_prompt(game, player_idx: int, player_configs=None) -> str:
     valid_str = ", ".join(valid_moves) if valid_moves else "Any valid move"
 
     rules = getattr(game, "get_rules", lambda: "")()
-    rules_section = f"\n### Rules\n{rules}\n" if rules else ""
+    rules_section = f"\n\n### Rules\n{rules}\n" if rules else ""
 
     persona_section = ""
     if player_configs and player_idx < len(player_configs):
@@ -289,8 +289,10 @@ Your goal is to win the game or force a draw.{rules_section}{persona_section}{pl
 ### Instructions
 - Analyze the board and the move history.
 - **Valid indices/moves:** {valid_str}
-- Provide your next move, formatted exactly as `(answer "your_move")` on its own line.
+- Provide your next move, formatted exactly as `(answer "your_move")` on its own line within a SxPB markdown code block.
   - The string inside the quotes cannot contain newlines.
+  - Keep the answer less than a paragraph if it's even allowed to be that long.
+  - Remember, the answer is literally formatted as newline, open paren, the word answer, space, open double quote, your string, close double quote, close paren, newline.
 
 ### Question
 {prompt_q}"""
