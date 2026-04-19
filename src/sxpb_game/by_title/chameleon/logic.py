@@ -299,7 +299,7 @@ class ChameleonLogic(GameLogic):
                     return MoveResult(False, "")
                 if t_idx not in self.tie_candidates:
                     return MoveResult(False, "")
-                self.history.append(f"(vote {p_str} p{t_idx + 1}) ; tiebreaker")
+                self.history.append(f"(vote {p_str} p{t_idx + 1})  ; tiebreaker")
                 self._apply_vote_result(t_idx)
                 return MoveResult(True, "")
         if self.phase == "CHAMELEON_GUESS":

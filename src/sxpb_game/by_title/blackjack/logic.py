@@ -245,7 +245,7 @@ class BlackjackLogic(GameLogic):
         return f"""; --- Blackjack (6 Decks) ---
 (board
  (dealer (()) {dealer_display})
- (player (()) {player_display}) ; Total: {player_val}{soft_str}
+ (player (()) {player_display})  ; Total: {player_val}{soft_str}
 )"""
 
     def __str__(self):

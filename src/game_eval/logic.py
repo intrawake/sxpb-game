@@ -29,6 +29,14 @@ class GameLogic:
         """Returns the SxPB-formatted string representing the history of moves, or empty string if not applicable."""
         return ""
 
+    def render_player_full_sxpb(self, player_idx: int) -> str:
+        """Returns the complete SxPB-formatted string combining history and state, with history first."""
+        view = self.render_player_view(player_idx).strip()
+        history = self.render_player_history(player_idx).strip()
+        if history:
+            return f"{history}\n\n{view}"
+        return view
+
     def is_game_over(self) -> bool:
         """Returns whether the game is over."""
         raise NotImplementedError

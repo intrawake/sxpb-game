@@ -245,13 +245,7 @@ def generate_prompt(game, player_idx: int, player_configs=None) -> str:
     players = game.get_player_identifiers()
     curr_player_id = players[player_idx]
 
-    state_sxpb = game.render_player_view(player_idx).strip()
-    history_sxpb = getattr(game, "render_player_history", lambda i: "")(
-        player_idx
-    ).strip()
-
-    if history_sxpb:
-        state_sxpb = f"{history_sxpb}\n\n{state_sxpb}"
+    state_sxpb = game.render_player_full_sxpb(player_idx)
 
     visible_indices = getattr(
         game, "get_visible_players", lambda idx: list(range(len(players)))

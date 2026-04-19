@@ -242,10 +242,8 @@ def main():
             try:
                 with game_lock:
                     idx = 0
-                    state_sxpb = game.render_player_view(idx).strip()
-                    history_sxpb = getattr(game, "render_player_history", lambda i: "")(
-                        idx
-                    ).strip()
+                    state_sxpb = game.render_player_full_sxpb(idx)
+                    history_sxpb = ""
 
                     visible_indices = getattr(
                         game, "get_visible_players", lambda i: list(range(len(players)))
@@ -469,7 +467,9 @@ def main():
                         sys.stdout.write(
                             f"--- View for Player {idx} ({players[idx]}) ---\n"
                         )
-                        sys.stdout.write(game.render_player_view(idx).strip() + "\n")
+                        sys.stdout.write(
+                            game.render_player_full_sxpb(idx).strip() + "\n"
+                        )
                         sys.stdout.write("---------------------------\n")
                     sys.stdout.flush()
             elif line == "prompt":
@@ -693,7 +693,7 @@ def main():
             )
             curr_idx = game.get_current_player()
             state = {
-                "board_sxpb": game.render_player_view(players.index(player_id)),
+                "board_sxpb": game.render_player_full_sxpb(players.index(player_id)),
                 "status": "GAME_OVER" if is_over else "PLAYING",
                 "current_player": players[curr_idx] if curr_idx is not None else None,
                 "your_player": player_id,
@@ -1105,10 +1105,8 @@ def main():
                     return
 
                 with game_lock:
-                    state_sxpb = game.render_player_view(idx).strip()
-                    history_sxpb = getattr(game, "render_player_history", lambda i: "")(
-                        idx
-                    ).strip()
+                    state_sxpb = game.render_player_full_sxpb(idx)
+                    history_sxpb = ""
 
                     if history_sxpb:
                         state_sxpb = f"{history_sxpb}\n\n{state_sxpb}"
@@ -1186,10 +1184,8 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
             try:
                 with game_lock:
                     idx = 0
-                    state_sxpb = game.render_player_view(idx).strip()
-                    history_sxpb = getattr(game, "render_player_history", lambda i: "")(
-                        idx
-                    ).strip()
+                    state_sxpb = game.render_player_full_sxpb(idx)
+                    history_sxpb = ""
 
                     visible_indices = getattr(
                         game, "get_visible_players", lambda i: list(range(len(players)))

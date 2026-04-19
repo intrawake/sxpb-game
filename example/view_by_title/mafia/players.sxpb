@@ -1,0 +1,48 @@
+(())
+
+(()
+ (premoves (())
+  "Mafia Villager Doctor Detective Villager"
+  "p1 p2 p3 p4 p5"
+  "p5 p4 p3 p2 p1"
+  "p1 p2 p3 p4 p5"
+))
+
+(()
+ (premoves (())
+  "Let's kill p5"
+  "kill p5"
+  "I think p2 is acting sus."
+  "You're all making a mistake!"
+  "vote p2"
+))
+
+(()
+ (premoves (())
+  "I'm just a simple villager!"
+  "Okay, p1 it is."
+  "vote p1"
+))
+
+(()
+ (premoves (())
+  "save p5"
+  "p5 almost died last night."
+  Agreed.
+  "vote p1"
+))
+
+(()
+ (premoves (())
+  "investigate p1"
+  "p1 is literally Mafia, I investigated him!"
+  "Yes, absolutely p1."
+  "vote p1"
+))
+
+(()
+ (premoves (())
+  "Wow, thank you doctor. And yeah, let's vote p1."
+  "I still think it's p1."
+  "vote p1"
+))

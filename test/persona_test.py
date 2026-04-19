@@ -5,9 +5,10 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from game_eval.utils import generate_prompt
+from game_eval.logic import GameLogic
 
 
-class MockGame:
+class MockGame(GameLogic):
     def get_player_identifiers(self):
         return ["p1", "p2"]
 

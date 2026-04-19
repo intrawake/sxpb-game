@@ -10,8 +10,3 @@
 ; --- Game Metadata ---
 (player_to_move O)
 (move_count 5)
-
-; --- Move History ---
-(moves (())
- Xb2 Oa3 Xc1 Oa1 Xa2
-)

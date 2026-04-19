@@ -64,7 +64,7 @@ def test_mafia_logic():
 
     h_det = game.render_player_history(4)
     assert 'p1 "Let\'s kill p5"' not in h_det
-    assert '(p4 "investigate p1") ; Detective result Mafia' in h_det
+    assert '(p4 "investigate p1")  ; Detective result Mafia' in h_det
     assert "; Mafia" not in h_det
     assert "Mafia_kill_decision" not in h_det
 

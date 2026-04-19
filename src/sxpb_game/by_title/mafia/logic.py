@@ -281,7 +281,7 @@ class MafiaLogic(GameLogic):
         p_str = f"p{player_idx}"
 
         if self.phase == "NIGHT_MAFIA_DISCUSSION":
-            self.history.append(f'({p_str} "{move}") ; private')
+            self.history.append(f'({p_str} "{move}")  ; private')
             self.mafia_discussion_turns += 1
 
             mafia_count = sum(
@@ -313,7 +313,7 @@ class MafiaLogic(GameLogic):
                 return MoveResult(False, "")
 
             self.night_votes[p_idx] = t_idx
-            self.history.append(f'(p{player_idx} "kill p{t_idx + 1}") ; Mafia')
+            self.history.append(f'(p{player_idx} "kill p{t_idx + 1}")  ; Mafia')
 
             mafia_count = sum(
                 1 for a, r in zip(self.alive, self.roles) if a and r == "Mafia"
@@ -337,7 +337,7 @@ class MafiaLogic(GameLogic):
 
                 self.night_kill_target = winner
                 self.history.append(
-                    f"(Mafia_kill_decision p{self.night_kill_target + 1}) ; Mafia"
+                    f"(Mafia_kill_decision p{self.night_kill_target + 1})  ; Mafia"
                 )
 
                 # Check if doctor exists and is alive
@@ -381,7 +381,7 @@ class MafiaLogic(GameLogic):
 
                 self.doctor_save_target = t_idx
                 self.last_saved_player = t_idx
-                self.history.append(f'({p_str} "save p{t_idx + 1}") ; private')
+                self.history.append(f'({p_str} "save p{t_idx + 1}")  ; private')
 
                 det_exists = any(
                     r == "Detective" and a for r, a in zip(self.roles, self.alive)
@@ -411,7 +411,7 @@ class MafiaLogic(GameLogic):
 
                         self.doctor_save_target = t_idx
                         self.last_saved_player = t_idx
-                        self.history.append(f'({p_str} "save p{t_idx + 1}") ; private')
+                        self.history.append(f'({p_str} "save p{t_idx + 1}")  ; private')
                         det_exists = any(
                             r == "Detective" and a
                             for r, a in zip(self.roles, self.alive)
@@ -445,7 +445,7 @@ class MafiaLogic(GameLogic):
                 is_mafia = self.roles[t_idx] == "Mafia"
                 result = "Mafia" if is_mafia else "Not_Mafia"
                 self.history.append(
-                    f'(p{player_idx} "investigate p{t_idx + 1}") ; Detective result {result}'
+                    f'(p{player_idx} "investigate p{t_idx + 1}")  ; Detective result {result}'
                 )
 
                 vig_exists = any(
@@ -466,7 +466,7 @@ class MafiaLogic(GameLogic):
                         is_mafia = self.roles[t_idx] == "Mafia"
                         result = "Mafia" if is_mafia else "Not_Mafia"
                         self.history.append(
-                            f'({p_str} "investigate p{t_idx + 1}") ; Detective result {result}'
+                            f'({p_str} "investigate p{t_idx + 1}")  ; Detective result {result}'
                         )
                         vig_exists = any(
                             r == "Vigilante" and a
@@ -482,7 +482,7 @@ class MafiaLogic(GameLogic):
 
         if self.phase == "NIGHT_VIGILANTE":
             if parts[0].lower() == "skip":
-                self.history.append(f'({p_str} "skip") ; private')
+                self.history.append(f'({p_str} "skip")  ; private')
                 self._resolve_night()
                 return MoveResult(True, "")
             if parts[0].lower() == "shoot" and len(parts) >= 2:
@@ -498,7 +498,7 @@ class MafiaLogic(GameLogic):
 
                 self.vigilante_target = t_idx
                 self.vigilante_has_shot = True
-                self.history.append(f'({p_str} "shoot p{t_idx + 1}") ; private')
+                self.history.append(f'({p_str} "shoot p{t_idx + 1}")  ; private')
                 self._resolve_night()
                 return MoveResult(True, "")
 
@@ -510,7 +510,9 @@ class MafiaLogic(GameLogic):
                     if 0 <= t_idx < self.num_players and self.alive[t_idx]:
                         self.vigilante_target = t_idx
                         self.vigilante_has_shot = True
-                        self.history.append(f'({p_str} "shoot p{t_idx + 1}") ; private')
+                        self.history.append(
+                            f'({p_str} "shoot p{t_idx + 1}")  ; private'
+                        )
                         self._resolve_night()
                         return MoveResult(True, "")
                 except ValueError:
@@ -707,8 +709,8 @@ class MafiaLogic(GameLogic):
             visible = False
             rendered = h
 
-            if " ; " in h:
-                parts = h.split(" ; ", 1)
+            if "  ; " in h:
+                parts = h.split("  ; ", 1)
                 base = parts[0].strip()
                 comment = parts[1].strip()
 

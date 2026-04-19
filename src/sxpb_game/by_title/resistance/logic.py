@@ -231,7 +231,7 @@ class ResistanceLogic(GameLogic):
             self.history.append(f'(p{player_idx} "propose {squad_str}")')
             self.phase = "VOTE_ON_SQUAD"
             self.squad_votes = {p_idx: "approve"}
-            self.history.append(f'(p{player_idx} "vote approve") ; private')
+            self.history.append(f'(p{player_idx} "vote approve")  ; private')
             return MoveResult(True, "")
 
         if self.phase == "VOTE_ON_SQUAD":
@@ -243,7 +243,7 @@ class ResistanceLogic(GameLogic):
                 return MoveResult(False, "Must 'vote approve' or 'vote reject'.")
 
             self.squad_votes[p_idx] = vote_val
-            self.history.append(f'(p{player_idx} "vote {vote_val}") ; private')
+            self.history.append(f'(p{player_idx} "vote {vote_val}")  ; private')
 
             if len(self.squad_votes) == self.num_players:
                 votes_str = " ".join(
@@ -263,7 +263,7 @@ class ResistanceLogic(GameLogic):
                     for p in self.proposed_squad:
                         if self.teams[p] == "Resistance":
                             self.mission_votes[p] = "success"
-                            self.history.append(f'(p{p + 1} "play success") ; private')
+                            self.history.append(f'(p{p + 1} "play success")  ; private')
 
                     if len(self.mission_votes) == len(self.proposed_squad):
                         self._resolve_mission()
@@ -297,7 +297,7 @@ class ResistanceLogic(GameLogic):
                 return MoveResult(False, "Resistance players must play success.")
 
             self.mission_votes[p_idx] = play_val
-            self.history.append(f'(p{player_idx} "play {play_val}") ; private')
+            self.history.append(f'(p{player_idx} "play {play_val}")  ; private')
 
             if len(self.mission_votes) == len(self.proposed_squad):
                 self._resolve_mission()
@@ -351,8 +351,8 @@ class ResistanceLogic(GameLogic):
             visible = False
             rendered = h
 
-            if " ; private" in h:
-                parts = h.split(" ; ", 1)
+            if "  ; private" in h:
+                parts = h.split("  ; private", 1)
                 base = parts[0].strip()
                 actor_str = base.split(maxsplit=1)[0].strip("(")
                 try:

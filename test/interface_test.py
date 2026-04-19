@@ -313,7 +313,7 @@ def test_blackjack_interface():
     expected_sxpb = """; --- Blackjack (6 Decks) ---
 (board
  (dealer (()) S9 ?)
- (player (()) D3 D8) ; Total: 11
+ (player (()) D3 D8)  ; Total: 11
 )"""
     assert game.is_game_over() is False, "Game should not be over"
     assert game.get_current_player() == 1, "Current player should be Player"

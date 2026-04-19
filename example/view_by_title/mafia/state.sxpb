@@ -1,0 +1,10 @@
+(table
+ (phase DAY_VOTE)
+ (players ()
+  (p1 (status dead) (team Mafia) (role Mafia))
+  (p2 (status alive) (team Villager) (role Villager))
+  (p3 (status alive) (team Villager) (role Doctor))
+  (p4 (status alive) (team Villager) (role Detective))
+  (p5 (status alive) (team Villager) (role Villager))
+ )
+)
