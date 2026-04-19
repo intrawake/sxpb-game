@@ -68,3 +68,37 @@ def test_skull_basic_flow():
     assert logic.players[2]["score"] == 1
     assert logic.phase == "FIRST_DISC"
     assert logic.current_player == 2  # Winner starts next round
+
+
+def test_skull_auto_flip_max_bid_fail():
+    logic = SkullLogic(num_players=3)
+
+    logic.make_move(1, "play rose")
+    logic.make_move(2, "play skull")
+    logic.make_move(3, "play rose")
+
+    # P1 bids 3 (max bid, as there are 3 discs on table)
+    res = logic.make_move(1, "bid 3")
+    assert res.success
+
+    # Should automatically flip P1's stack (rose), then P2's stack (skull)
+    # Hitting P2's skull triggers random discard phase via GM
+    assert logic.phase == "CHALLENGER_RANDOM_DISCARD"
+    assert logic.skull_owner_idx == 1
+
+
+def test_skull_auto_flip_max_bid_win():
+    logic = SkullLogic(num_players=3)
+
+    logic.make_move(1, "play rose")
+    logic.make_move(2, "play rose")
+    logic.make_move(3, "play rose")
+
+    # P1 bids 3 (max bid)
+    res = logic.make_move(1, "bid 3")
+    assert res.success
+
+    # Should automatically flip all 3 roses and win the round immediately
+    assert logic.players[0]["score"] == 1
+    assert logic.phase == "FIRST_DISC"
+    assert logic.current_player == 0

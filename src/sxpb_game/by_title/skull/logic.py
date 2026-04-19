@@ -22,19 +22,20 @@ class SkullLogic(GameLogic):
             for _ in range(self.num_players)
         ]
 
-        self.round_num = 1
-        self.phase = "FIRST_DISC"
+        self.round_num: int = 1
+        self.phase: str = "FIRST_DISC"
 
-        self.first_player = 0
-        self.current_player = 0
-        self.highest_bid = 0
-        self.highest_bidder = None
-        self.passed_players = set()
+        self.first_player: int = 0
+        self.current_player: int = 0
+        self.highest_bid: int = 0
+        self.highest_bidder: Optional[int] = None
+        self.passed_players: set[int] = set()
 
-        self.flipped_so_far = 0
-        self.hover_exchange_done = False
+        self.flipped_so_far: int = 0
+        self.hover_exchange_done: bool = False
+        self.skull_owner_idx: int = 0
 
-        self.history = []
+        self.history: List[str] = []
 
     def _record_move(self, p_name: str, raw_move: str):
         escaped = raw_move.replace('"', '\\"')
@@ -196,7 +197,9 @@ class SkullLogic(GameLogic):
 
         if self.phase == "CHALLENGE_HOVER_REPLY":
             self._record_move(p_name, move)
-            self._transition_to_challenge_flip()
+            self.phase = "CHALLENGE_FLIP"
+            assert self.highest_bidder is not None
+            self.current_player = self.highest_bidder
             return MoveResult(True, "")
 
         if self.phase in ["FIRST_DISC", "PLAY_OR_BID"]:
@@ -368,6 +371,7 @@ class SkullLogic(GameLogic):
         self.flipped_so_far = 0
         p_idx = self.highest_bidder
         assert p_idx is not None
+        self.current_player = p_idx
         p = self.players[p_idx]
         p_name = f"p{p_idx + 1}"
 
@@ -385,6 +389,24 @@ class SkullLogic(GameLogic):
             self._resolve_flip(p_idx, p_idx, disc)
             if self.phase != "CHALLENGE_FLIP" or self.game_over:
                 return
+
+        if self.highest_bid == self._total_discs_on_table():
+            for target_idx, target_p in enumerate(self.players):
+                if target_idx == p_idx or target_p["status"] != "active":
+                    continue
+                target_stack = target_p["stack"]
+                unflipped = [
+                    i for i, d in enumerate(target_stack) if not isinstance(d, tuple)
+                ]
+                for i in reversed(unflipped):
+                    disc = target_stack[i]
+                    target_stack[i] = ("flipped", disc)
+                    self.history.append(f'({p_name} "flip p{target_idx + 1}")')
+                    self.history.append(f"(disc {disc.capitalize()})")
+
+                    self._resolve_flip(p_idx, target_idx, disc)
+                    if self.phase != "CHALLENGE_FLIP" or self.game_over:
+                        return
 
     def _resolve_flip(
         self, challenger_idx: int, owner_idx: int, disc: str
