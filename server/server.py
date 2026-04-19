@@ -43,7 +43,10 @@ def shuffle_player_configs(player_configs, indices_str, randint_func=None):
     valid_indices = []
     for x in cleaned_str.split():
         idx = int(x)
-        if idx < len(player_configs) and idx not in valid_indices:
+        if idx >= len(player_configs):
+            print(f"Error: --shuffle_players index {idx} out of bounds.")
+            sys.exit(1)
+        if idx not in valid_indices:
             valid_indices.append(idx)
 
     for n in range(len(valid_indices)):

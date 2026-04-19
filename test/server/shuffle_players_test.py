@@ -26,15 +26,12 @@ class TestShufflePlayers(unittest.TestCase):
         shuffle_player_configs(configs, indices_str, randint_func=fake_randint)
         self.assertEqual(configs, ["C", "B", "A", "D"])
 
-    def test_shuffle_player_configs_out_of_bounds_ignored(self):
+    def test_shuffle_player_configs_out_of_bounds_exits(self):
         configs = ["A", "B", "C"]
         indices_str = "1, 5, 2"
-        # Valid: 1, 2 (B, C)
-        # i=1: swap 1,1
-        # i=2: swap 2,1
-        # Result: A, C, B
-        shuffle_player_configs(configs, indices_str, randint_func=fake_randint)
-        self.assertEqual(configs, ["A", "C", "B"])
+        with self.assertRaises(SystemExit) as cm:
+            shuffle_player_configs(configs, indices_str, randint_func=fake_randint)
+        self.assertEqual(cm.exception.code, 1)
 
     def test_shuffle_player_configs_duplicates_ignored(self):
         configs = ["A", "B", "C"]
