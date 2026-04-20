@@ -11,8 +11,8 @@ import random
 import re
 
 # Ensure we can import from src and local modules
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from rendezqueue.client import RendezqueueClient
 from game_eval.logic import GameLogic
@@ -131,7 +131,7 @@ def main():
     parser.add_argument(
         "--model_by_name",
         default=os.path.join(
-            os.path.dirname(__file__), "..", "preset", "model_by_name.sxpb"
+            os.path.dirname(__file__), "..", "..", "..", "preset", "model_by_name.sxpb"
         ),
         help="SxPB string or file defining model-specific overrides (must start with `()` to parse as a dict)",
     )

@@ -5,7 +5,7 @@ import tempfile
 import time
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SERVER_PY = os.path.join(REPO_ROOT, "server", "server.py")
+SERVER_PY = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness", "sxpb_game_main.py")
 
 
 def test_non_interactive_termination_on_invalid_format():

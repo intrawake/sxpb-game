@@ -10,7 +10,7 @@ class TestServerArgs(unittest.TestCase):
     def test_shuffle_players_out_of_bounds_exits(self):
         cmd = [
             sys.executable,
-            "server/server.py",
+            "src/sxpb_game/harness/sxpb_game_main.py",
             "--game",
             "tictactoe",
             "--players",

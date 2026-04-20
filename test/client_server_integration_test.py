@@ -8,8 +8,8 @@ from contextlib import closing
 
 # Paths
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SERVER_DIR = os.path.join(REPO_ROOT, "server")
-SERVER_PY = os.path.join(SERVER_DIR, "server.py")
+SERVER_DIR = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness")
+SERVER_PY = os.path.join(SERVER_DIR, "sxpb_game_main.py")
 CLIENT_PY = os.path.join(SERVER_DIR, "client.py")
 
 

@@ -4,8 +4,11 @@ import threading
 import time
 from unittest.mock import patch
 
-sys.path.insert(0, os.path.abspath("server"))
-import server
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")),
+)
+from sxpb_game.harness import sxpb_game_main as server
 
 import warnings
 
@@ -64,14 +67,14 @@ def test_say_command_resumed_players_bug():
             return '(answer "a3")', None, None
 
     with (
-        patch("server.call_api", side_effect=mock_call_api),
+        patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
         patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",

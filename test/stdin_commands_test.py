@@ -4,8 +4,11 @@ import threading
 import time
 from unittest.mock import patch
 
-sys.path.insert(0, os.path.abspath("server"))
-import server
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")),
+)
+from sxpb_game.harness import sxpb_game_main as server
 
 
 import warnings
@@ -62,13 +65,13 @@ def test_retry_command_interrupts_call_api():
         pass
 
     with (
-        patch("server.call_api", side_effect=mock_call_api),
+        patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
         patch("sys.stdin", mock_stdin),
         patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",
@@ -132,14 +135,17 @@ def test_view_prompt_history_commands():
         pass
 
     with (
-        patch("server.call_api", return_value=('(answer "a1")', None, None)),
+        patch(
+            "sxpb_game.harness.sxpb_game_main.call_api",
+            return_value=('(answer "a1")', None, None),
+        ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
         patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",
@@ -212,14 +218,17 @@ def test_suspend_resume_commands():
         pass
 
     with (
-        patch("server.call_api", return_value=('(answer "a1")', None, None)),
+        patch(
+            "sxpb_game.harness.sxpb_game_main.call_api",
+            return_value=('(answer "a1")', None, None),
+        ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
         patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",
@@ -292,7 +301,7 @@ def test_say_command():
 
     with (
         patch(
-            "server.call_api",
+            "sxpb_game.harness.sxpb_game_main.call_api",
             side_effect=lambda *args, **kwargs: ('(answer "a1")', None, None),
         ),
         patch("sys.stdin", mock_stdin),
@@ -301,7 +310,7 @@ def test_say_command():
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",
@@ -382,14 +391,17 @@ def test_suspend_with_count_command():
         pass
 
     with (
-        patch("server.call_api", return_value=('(answer "a1")', None, None)),
+        patch(
+            "sxpb_game.harness.sxpb_game_main.call_api",
+            return_value=('(answer "a1")', None, None),
+        ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
         patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",
@@ -480,14 +492,14 @@ def test_resume_preserves_player_suspension():
             return '(answer "b2")', None, None
 
     with (
-        patch("server.call_api", side_effect=mock_call_api),
+        patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
         patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
-                "server.py",
+                "sxpb_game_main.py",
                 "--interactive",
                 "--game",
                 "tictactoe",

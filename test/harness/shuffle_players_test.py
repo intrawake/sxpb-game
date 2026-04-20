@@ -3,10 +3,10 @@ import os
 import unittest
 
 sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "server"))
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 )
 
-import server
+from sxpb_game.harness import sxpb_game_main as server
 
 shuffle_player_configs = getattr(server, "shuffle_player_configs")
 

@@ -30,8 +30,8 @@ tidy = "ruff format"
 lint = {composite = ["check-format", "check-type"]}
 tidytest = {composite = ["test", "tidy", "lint"]}
 test = "pytest -q"
-server = "python server/server.py --model_by_name preset/model_by_name.sxpb"
-client = "python server/client.py"
+server = "python -m sxpb_game.harness.sxpb_game_main --model_by_name preset/model_by_name.sxpb"
+client = "python -m sxpb_game.harness.client"
 benchmark-position = "python benchmark/position/eval.py --model_by_name preset/model_by_name.sxpb"
 
 [tool.pdm.scripts.fetch-wordle-words]
