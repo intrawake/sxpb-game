@@ -140,11 +140,6 @@ def main():
         dest="openai_api_url",
         help="OpenAI-compatible API URL (e.g. https://api.openai.com/v1)",
     )
-    parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="Require answer to be in a sxpb >/dev/stdout code block",
-    )
     args = parser.parse_args(new_argv)
 
     import random
@@ -846,11 +841,7 @@ def main():
                 finally:
                     with game_lock:
                         server_state["llm_thread"] = None
-                prompt_format = (
-                    'using the exact format:\n```sxpb >/dev/stdout\n(answer "your_move")\n```'
-                    if args.strict
-                    else 'using the format `(answer "your_move")`.'
-                )
+                prompt_format = 'using the exact format:\n```sxpb >/dev/stdout\n(answer "your_move")\n```'
 
                 if not content:
                     valid, reason = attempt_move(
@@ -871,55 +862,23 @@ def main():
                     continue
 
                 move = None
-                if args.strict:
-                    import re
+                import re
 
-                    matches = list(
-                        re.finditer(
-                            r"(?:^|\n)[ \t]*```[ \t]*sxpb[ \t]*>[ \t]*/dev/stdout[ \t]*\r?\n(.*?)\r?\n[ \t]*```[ \t]*(?:\r?\n|$)",
-                            content,
-                            re.DOTALL,
-                        )
+                matches = list(
+                    re.finditer(
+                        r"(?:^|\n)[ \t]*```[ \t]*sxpb[ \t]*>[ \t]*/dev/stdout[ \t]*\r?\n(.*?)\r?\n[ \t]*```[ \t]*(?:\r?\n|$)",
+                        content,
+                        re.DOTALL,
                     )
-                    if matches:
-                        block_content = matches[-1].group(1)
-                        try:
-                            parsed_block = sxpb.loads(block_content)
-                            if (
-                                isinstance(parsed_block, dict)
-                                and "answer" in parsed_block
-                            ):
-                                move = parsed_block["answer"]
-                        except Exception as e:
-                            sys.stdout.write(f"Failed to parse sxpb block: {e}\n")
-                else:
-                    for line_part in reversed(content.strip().splitlines()):
-                        line_part = line_part.strip("` \t;")
-                        if (
-                            line_part.startswith("(answer ")
-                            or line_part.startswith('(answer"')
-                        ) and line_part.endswith(")"):
-                            try:
-                                parsed = sxpb.loads(line_part)
-                                if isinstance(parsed, dict) and "answer" in parsed:
-                                    move = parsed["answer"]
-                                    break
-                            except Exception:
-                                inner = (
-                                    line_part[8:-1].strip()
-                                    if line_part.startswith("(answer ")
-                                    else line_part[7:-1].strip()
-                                )
-                                move = (
-                                    inner[1:-1]
-                                    if (
-                                        len(inner) >= 2
-                                        and inner.startswith('"')
-                                        and inner.endswith('"')
-                                    )
-                                    else inner
-                                )
-                                break
+                )
+                if matches:
+                    block_content = matches[-1].group(1)
+                    try:
+                        parsed_block = sxpb.loads(block_content)
+                        if isinstance(parsed_block, dict) and "answer" in parsed_block:
+                            move = parsed_block["answer"]
+                    except Exception as e:
+                        sys.stdout.write(f"Failed to parse sxpb block: {e}\n")
 
                 with game_lock:
                     if game.get_current_player() != idx:

@@ -62,9 +62,9 @@ def test_say_command_resumed_players_bug():
         # P1 first turn is LLM (a2)
         # P0 second turn should be suspended! If it's not, it will call API and return a3.
         if call_count == 1:
-            return '(answer "a2")', None, None
+            return '```sxpb >/dev/stdout\n(answer "a2")\n```', None, None
         else:
-            return '(answer "a3")', None, None
+            return '```sxpb >/dev/stdout\n(answer "a3")\n```', None, None
 
     with (
         patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),

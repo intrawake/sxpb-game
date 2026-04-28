@@ -27,7 +27,7 @@ def test_retry_command_interrupts_call_api():
             while True:
                 time.sleep(0.1)
         else:
-            return '(answer "(0, 0)")', None, None
+            return '```sxpb >/dev/stdout\n(answer "(0, 0)")\n```', None, None
 
     class MockStdin:
         def __init__(self):
@@ -137,7 +137,7 @@ def test_view_prompt_history_commands():
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
-            return_value=('(answer "a1")', None, None),
+            return_value=('```sxpb >/dev/stdout\n(answer "a1")\n```', None, None),
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
@@ -220,7 +220,7 @@ def test_suspend_resume_commands():
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
-            return_value=('(answer "a1")', None, None),
+            return_value=('```sxpb >/dev/stdout\n(answer "a1")\n```', None, None),
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
@@ -302,7 +302,11 @@ def test_say_command():
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
-            side_effect=lambda *args, **kwargs: ('(answer "a1")', None, None),
+            side_effect=lambda *args, **kwargs: (
+                '```sxpb >/dev/stdout\n(answer "a1")\n```',
+                None,
+                None,
+            ),
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
@@ -393,7 +397,7 @@ def test_suspend_with_count_command():
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
-            return_value=('(answer "a1")', None, None),
+            return_value=('```sxpb >/dev/stdout\n(answer "a1")\n```', None, None),
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
@@ -487,9 +491,9 @@ def test_resume_preserves_player_suspension():
         nonlocal call_count
         call_count += 1
         if call_count % 2 == 1:
-            return '(answer "a1")', None, None
+            return '```sxpb >/dev/stdout\n(answer "a1")\n```', None, None
         else:
-            return '(answer "b2")', None, None
+            return '```sxpb >/dev/stdout\n(answer "b2")\n```', None, None
 
     with (
         patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
