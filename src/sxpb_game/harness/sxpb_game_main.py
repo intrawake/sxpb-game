@@ -140,6 +140,11 @@ def main():
         dest="openai_api_url",
         help="OpenAI-compatible API URL (e.g. https://api.openai.com/v1)",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Require answer to be in a sxpb >/dev/stdout code block",
+    )
     args = parser.parse_args(new_argv)
 
     import random
@@ -841,6 +846,12 @@ def main():
                 finally:
                     with game_lock:
                         server_state["llm_thread"] = None
+                prompt_format = (
+                    'using the exact format:\n```sxpb >/dev/stdout\n(answer "your_move")\n```'
+                    if args.strict
+                    else 'using the format `(answer "your_move")`.'
+                )
+
                 if not content:
                     valid, reason = attempt_move(
                         idx, None, prompt=messages[-1]["content"], model=model
@@ -853,40 +864,62 @@ def main():
                     messages.append(
                         {
                             "role": "user",
-                            "content": f'Received empty response. {reason} Please respond with ONLY one of the valid options/indices: {valid_str} using the format `(answer "your_move")`.',
+                            "content": f"Received empty response. {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
                         }
                     )
                     attempt += 1
                     continue
 
                 move = None
-                for line_part in reversed(content.strip().splitlines()):
-                    line_part = line_part.strip("` \t;")
-                    if (
-                        line_part.startswith("(answer ")
-                        or line_part.startswith('(answer"')
-                    ) and line_part.endswith(")"):
+                if args.strict:
+                    import re
+
+                    matches = list(
+                        re.finditer(
+                            r"(?:^|\n)[ \t]*```[ \t]*sxpb[ \t]*>[ \t]*/dev/stdout[ \t]*\r?\n(.*?)\r?\n[ \t]*```[ \t]*(?:\r?\n|$)",
+                            content,
+                            re.DOTALL,
+                        )
+                    )
+                    if matches:
+                        block_content = matches[-1].group(1)
                         try:
-                            parsed = sxpb.loads(line_part)
-                            if isinstance(parsed, dict) and "answer" in parsed:
-                                move = parsed["answer"]
-                                break
-                        except Exception:
-                            inner = (
-                                line_part[8:-1].strip()
-                                if line_part.startswith("(answer ")
-                                else line_part[7:-1].strip()
-                            )
-                            move = (
-                                inner[1:-1]
-                                if (
-                                    len(inner) >= 2
-                                    and inner.startswith('"')
-                                    and inner.endswith('"')
+                            parsed_block = sxpb.loads(block_content)
+                            if (
+                                isinstance(parsed_block, dict)
+                                and "answer" in parsed_block
+                            ):
+                                move = parsed_block["answer"]
+                        except Exception as e:
+                            sys.stdout.write(f"Failed to parse sxpb block: {e}\n")
+                else:
+                    for line_part in reversed(content.strip().splitlines()):
+                        line_part = line_part.strip("` \t;")
+                        if (
+                            line_part.startswith("(answer ")
+                            or line_part.startswith('(answer"')
+                        ) and line_part.endswith(")"):
+                            try:
+                                parsed = sxpb.loads(line_part)
+                                if isinstance(parsed, dict) and "answer" in parsed:
+                                    move = parsed["answer"]
+                                    break
+                            except Exception:
+                                inner = (
+                                    line_part[8:-1].strip()
+                                    if line_part.startswith("(answer ")
+                                    else line_part[7:-1].strip()
                                 )
-                                else inner
-                            )
-                            break
+                                move = (
+                                    inner[1:-1]
+                                    if (
+                                        len(inner) >= 2
+                                        and inner.startswith('"')
+                                        and inner.endswith('"')
+                                    )
+                                    else inner
+                                )
+                                break
 
                 with game_lock:
                     if game.get_current_player() != idx:
@@ -915,12 +948,13 @@ def main():
                         sys.stdout.write(
                             f"LLM provided invalid move for {curr_player_id}. Reason: {reason}\n"
                         )
+                        sys.stdout.write(f"RAW CONTENT:\n{content}\n")
                         sys.stdout.flush()
                         messages.append({"role": "assistant", "content": content})
                         messages.append(
                             {
                                 "role": "user",
-                                "content": f'Move failed: {reason} Please respond with ONLY one of the valid options/indices: {valid_str} using the format `(answer "your_move")`.',
+                                "content": f"Move failed: {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
                             }
                         )
                         attempt += 1

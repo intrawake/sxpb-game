@@ -82,7 +82,7 @@ def test_retry_command_interrupts_call_api():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         time.sleep(1.0)
@@ -156,7 +156,7 @@ def test_view_prompt_history_commands():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         # Give it a moment to start and maybe take a turn
@@ -239,7 +239,7 @@ def test_suspend_resume_commands():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         # Suspend immediately
@@ -322,7 +322,7 @@ def test_say_command():
         ),
     ):
         mock_stdin.push("suspend 0 -1\n")
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         time.sleep(0.5)
@@ -412,7 +412,7 @@ def test_suspend_with_count_command():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         # Wait for server to start
@@ -513,7 +513,7 @@ def test_resume_preserves_player_suspension():
         # Push suspend before the thread even starts
         mock_stdin.push("suspend 0 2\n")
 
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         # Give it a moment to process the suspend and the first turn

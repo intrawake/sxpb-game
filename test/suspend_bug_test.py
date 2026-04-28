@@ -85,7 +85,7 @@ def test_say_command_resumed_players_bug():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)  # type: ignore
+        server_thread = threading.Thread(target=server.main, daemon=True)
         server_thread.start()
 
         # Suspend player 0 for 99 moves

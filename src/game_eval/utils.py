@@ -283,10 +283,12 @@ Your goal is to win the game or force a draw.{rules_section}{persona_section}{pl
 ### Instructions
 - Analyze the board and the move history.
 - **Valid indices/moves:** {valid_str}
-- Provide your next move, formatted exactly as `(answer "your_move")` on its own line within a SxPB markdown code block.
+- Provide your next move using the following EXACT markdown format:
+  ```sxpb >/dev/stdout
+  (answer "your_move")
+  ```
   - The string inside the quotes cannot contain newlines.
   - Keep the answer less than a paragraph if it's even allowed to be that long.
-  - Remember, the answer is literally formatted as newline, open paren, the word answer, space, open double quote, your string, close double quote, close paren, newline.
 
 ### Question
 {prompt_q}"""
