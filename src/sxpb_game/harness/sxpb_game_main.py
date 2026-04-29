@@ -841,7 +841,7 @@ def main():
                 finally:
                     with game_lock:
                         server_state["llm_thread"] = None
-                prompt_format = 'using the exact format:\n```sxpb >/dev/stdout\n(answer "your_move")\n```'
+                prompt_format = 'using the exact format:\n```sxpb > /dev/stdout\n(answer "your_move")\n```'
 
                 if not content:
                     valid, reason = attempt_move(

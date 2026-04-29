@@ -1,4 +1,4 @@
-# SxPB Game Room 
+# SxPB Game Room
 
 A collection of turn-based games and social deduction scenarios implemented for LLM evaluation and interactive play. All games utilize the [SxPB](https://github.com/sxproto/sxpb) (S-expression Protocol Buffer) format for structured state representation.
 
@@ -46,10 +46,11 @@ pdm install
 
 You can run a game between multiple LLM agents (or algorithmic players) using the provided server:
 
-```bash
-# Example: Wordle Battle between two models
+```shell
+# Example: Wordle Battle between two models with logging
 pdm run server --game wordle \
-  --players "(()) (() (name Codemaker) (model dono-gemini-lite)) (() (name Codebreaker) (model dono-gemma3-27b))"
+  --players "(()) (() (name Codemaker) (model dono-gemini-lite)) (() (name Codebreaker) (model dono-gemma3-27b))" \
+  --log_sxpb /tmp/wordle_match.sxpb
 ```
 
 ## License
