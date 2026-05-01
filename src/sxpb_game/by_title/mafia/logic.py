@@ -139,9 +139,12 @@ class MafiaLogic(GameLogic):
 
         if self.phase == "DAY_DISCUSSION":
             prompt = "Day discussion phase. "
-            if not self.turn_question_asked:
-                prompt += "You can ask one person a question by responding with `p<idx>? <question>`, OR "
-            prompt += "Say something to the group, accuse someone, or defend yourself (this will end your turn)."
+            if self.day_discussion_round == 0:
+                prompt += "Everyone is getting a chance to share their thoughts in a predetermined order. Say something to the group, state your suspicions, or defend yourself."
+            else:
+                if not self.turn_question_asked:
+                    prompt += "You can ask one person a question by responding with `p<idx>? <question>`, OR "
+                prompt += "Say something to the group, accuse someone, or defend yourself (this will end your turn)."
             return prompt
 
         if self.phase == "DAY_DISCUSSION_REPLY":
@@ -527,7 +530,11 @@ class MafiaLogic(GameLogic):
             parts_move = move.split(maxsplit=2)
             is_hover = False
             target_idx = -1
-            if parts_move and parts_move[0].endswith("?"):
+            if (
+                self.day_discussion_round > 0
+                and parts_move
+                and parts_move[0].endswith("?")
+            ):
                 target_str = parts_move[0]
                 if target_str.lower().startswith("p"):
                     idx_str = target_str[1:-1]

@@ -1,14 +1,18 @@
-import sys
-import os
-import json
-import time
 import argparse
-import threading
+import ctypes
 import importlib
 import inspect
-import typing
+import json
+import os
 import random
 import re
+import signal
+import string
+import sys
+import textwrap
+import threading
+import time
+import typing
 
 # Ensure we can import from src and local modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src"))
@@ -30,8 +34,6 @@ def format_sxpb_txt(s):
     if not isinstance(s, str):
         s = str(s)
     if "\n" not in s:
-        import json
-
         return json.dumps(s)
     s = s.replace("\\", "\\\\").replace('"""', '""\\"')
     if not s.endswith("\n"):
@@ -144,9 +146,6 @@ def main():
         help="OpenAI-compatible API URL (e.g. https://api.openai.com/v1)",
     )
     args = parser.parse_args(new_argv)
-
-    import random
-    import string
 
     if args.key:
         game_key = args.key
@@ -302,8 +301,6 @@ def main():
 
         os._exit(code)
 
-    import signal
-
     def handle_sigint(signum, frame):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         sys.stdout.write("\nStopping server...\n")
@@ -349,8 +346,6 @@ def main():
             elif line == "retry":
                 with game_lock:
                     if server_state["llm_thread"]:
-                        import ctypes
-
                         res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
                             ctypes.c_long(server_state["llm_thread"]),
                             ctypes.py_object(AbortRequestException),
@@ -909,7 +904,6 @@ def main():
                     continue
 
                 move = None
-                import re
 
                 matches = list(
                     re.finditer(
@@ -988,8 +982,6 @@ def main():
                 server_state["llm_thread"] = threading.get_ident()
             try:
                 while True:
-                    import time
-
                     time.sleep(0.5)
             except AbortRequestException:
                 with game_lock:
@@ -1167,7 +1159,16 @@ def main():
                     winner = getattr(game, "winner", None)
 
                 player_info_section = (
-                    f"\n### Player Information\n```sxpb\n{players_sxpb}\n```\n"
+                    "\n"
+                    + textwrap.dedent(
+                        f"""
+                        ### Player Information
+                        ```sxpb
+                        {players_sxpb}
+                        ```
+                        """
+                    ).strip()
+                    + "\n"
                     if players_sxpb
                     else ""
                 )
