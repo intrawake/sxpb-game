@@ -7,14 +7,14 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SERVER_PY = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness", "sxpb_game_main.py")
 
 
-def test_empty_response_retry():
+def test_invalid_response_retry():
     env = os.environ.copy()
     env["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'src')}"
 
-    # Use 'empty-response-model' which simulates returning empty string
-    players_sxpb = '(()) (() (name "Bot1") (model "empty-response-model")) (() (name "Bot2") (algorithm "random"))'
+    # Use 'invalid-response-model' which simulates returning a bad move string
+    players_sxpb = '(()) (() (name "Bot1") (model "invalid-response-model")) (() (name "Bot2") (algorithm "random"))'
     # Dictionary format: () ("key" (subkey val))
-    model_by_name_sxpb = '() ("empty-response-model" (timeout 1))'
+    model_by_name_sxpb = '() ("invalid-response-model" (timeout 1))'
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         history_file = os.path.join(tmp_dir, "history.sxpb")
@@ -66,14 +66,14 @@ def test_empty_response_retry():
         print("Captured Output:")
         print(stdout_output)
 
-        if "LLM provided empty response for player" not in stdout_output:
-            print("FAIL: Did not find empty response logging.")
+        if "LLM provided invalid move" not in stdout_output:
+            print("FAIL: Did not find invalid move logging.")
             sys.exit(1)
 
-        empty_responses_count = stdout_output.count("LLM provided empty response")
-        if empty_responses_count != 4:
+        invalid_responses_count = stdout_output.count("LLM provided invalid move")
+        if invalid_responses_count != 4:
             print(
-                f"FAIL: Expected 4 retries for empty response, got {empty_responses_count}."
+                f"FAIL: Expected 4 retries for invalid response, got {invalid_responses_count}."
             )
             print("Output was:")
             print(stdout_output)
@@ -91,7 +91,7 @@ def test_empty_response_retry():
                 print("FAIL: Expected at least 4 invalid attempts logged.")
                 sys.exit(1)
 
-            # Check that the repeated empty responses caused the messages array to reset periodically
+            # Check that the repeated invalid responses caused the messages array to reset periodically
             for i, line in enumerate(lines):
                 rec = json.loads(line)
                 api_req = rec.get("api_request", {})
@@ -102,8 +102,8 @@ def test_empty_response_retry():
                     f"Expected {expected_len} messages on attempt {i + 1}, got {len(messages)}"
                 )
 
-    print("PASS: Empty response retry test successful.")
+    print("PASS: Invalid response retry test successful.")
 
 
 if __name__ == "__main__":
-    test_empty_response_retry()
+    test_invalid_response_retry()

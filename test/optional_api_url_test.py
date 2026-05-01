@@ -50,7 +50,7 @@ def test_server_local_automated_no_rendezqueue_url(base_env):
     stdout, _ = proc.communicate(timeout=10)
 
     assert proc.returncode == 0
-    assert "(Local Only)" in stdout
+    assert "(clientless)" in stdout
     assert "Game concluded" in stdout
 
 

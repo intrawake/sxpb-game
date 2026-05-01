@@ -288,8 +288,8 @@ def main():
                             "response": entry.get("raw_response"),
                             "model": entry.get("model"),
                         }
-                        if entry.get("api_req"):
-                            rec["api_request"] = entry.get("api_req")
+                        if entry.get("api_request"):
+                            rec["api_request"] = entry.get("api_request")
                         if entry.get("api_res"):
                             rec["api_response"] = entry.get("api_res")
                         f.write(json.dumps(rec) + "\n")
@@ -635,7 +635,7 @@ def main():
         )
         print(f"Lobby: {game_key}")
     else:
-        print(f"Starting Authoritative Game Server for '{args.game}' (Local Only)")
+        print(f"Starting Authoritative Game Server for '{args.game}' (clientless)")
 
     for p, conf in zip(players, player_configs):
         if "model" in conf:
@@ -808,7 +808,12 @@ def main():
         model, reasoning_effort, req_timeout, api_kwargs = get_model_config(conf)
 
         if (
-            model not in ["non-existent-model", "empty-response-model"]
+            model
+            not in [
+                "non-existent-model",
+                "empty-response-model",
+                "invalid-response-model",
+            ]
             and not args.openai_api_url
         ):
             sys.stdout.write(
@@ -837,7 +842,17 @@ def main():
                     if model == "non-existent-model":
                         content, api_req, api_res = None, None, None
                     elif model == "empty-response-model":
-                        content, api_req, api_res = "", None, None
+                        content, api_req, api_res = (
+                            "",
+                            {"messages": list(messages)},
+                            None,
+                        )
+                    elif model == "invalid-response-model":
+                        content, api_req, api_res = (
+                            '```sxpb > /dev/stdout\n(answer "invalid_move_123")\n```',
+                            {"messages": list(messages)},
+                            None,
+                        )
                     else:
                         content, api_req, api_res = call_api(
                             model,
@@ -861,19 +876,31 @@ def main():
 
                 if not content:
                     valid, reason = attempt_move(
-                        idx, None, prompt=messages[-1]["content"], model=model
+                        idx,
+                        None,
+                        prompt=messages[-1]["content"],
+                        model=model,
+                        api_req=api_req,
+                        api_res=api_res,
                     )
                     sys.stdout.write(
                         f"LLM provided empty response for player {curr_player_id}.\n"
                     )
                     sys.stdout.flush()
-                    messages.append({"role": "assistant", "content": ""})
-                    messages.append(
-                        {
-                            "role": "user",
-                            "content": f"Received empty response. {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
-                        }
-                    )
+                    if (
+                        len(messages) >= 3
+                        and messages[-2].get("role") == "assistant"
+                        and messages[-2].get("content") == ""
+                    ):
+                        messages = [{"role": "user", "content": prompt}]
+                    else:
+                        messages.append({"role": "assistant", "content": ""})
+                        messages.append(
+                            {
+                                "role": "user",
+                                "content": f"Received empty response. {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
+                            }
+                        )
                     attempt += 1
                     continue
 
@@ -925,13 +952,20 @@ def main():
                         )
                         sys.stdout.write(f"RAW CONTENT:\n{content}\n")
                         sys.stdout.flush()
-                        messages.append({"role": "assistant", "content": content})
-                        messages.append(
-                            {
-                                "role": "user",
-                                "content": f"Move failed: {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
-                            }
-                        )
+                        if (
+                            len(messages) >= 3
+                            and messages[-2].get("role") == "assistant"
+                            and messages[-2].get("content") == content
+                        ):
+                            messages = [{"role": "user", "content": prompt}]
+                        else:
+                            messages.append({"role": "assistant", "content": content})
+                            messages.append(
+                                {
+                                    "role": "user",
+                                    "content": f"Move failed: {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
+                                }
+                            )
                         attempt += 1
 
             if not args.interactive:
