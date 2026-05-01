@@ -4,7 +4,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from game_eval.logic import GameLogic, MoveResult, read_rulebook
+from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class MastermindLogic(GameLogic):

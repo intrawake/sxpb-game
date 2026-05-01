@@ -3,7 +3,7 @@ import os
 import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.utils import parse_game_guess
+from sxpb_game.eval.utils import parse_game_guess
 
 
 class TestParser(unittest.TestCase):
@@ -48,7 +48,7 @@ class TestParser(unittest.TestCase):
 
         sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
         sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-        from game_eval.logic import GameLogic
+        from sxpb_game.eval.logic import GameLogic
 
         games = [
             "minesweeper",

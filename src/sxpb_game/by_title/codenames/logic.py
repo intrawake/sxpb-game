@@ -4,7 +4,7 @@ import random
 from typing import List, Optional
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.logic import GameLogic, MoveResult
+from sxpb_game.eval.logic import GameLogic, MoveResult
 
 
 class CodenamesLogic(GameLogic):

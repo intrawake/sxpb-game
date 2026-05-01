@@ -15,9 +15,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src")
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from rendezqueue.client import RendezqueueClient
-from game_eval.logic import GameLogic
+from sxpb_game.eval.logic import GameLogic
 import sxpb
-from game_eval.utils import call_api, generate_prompt, get_player_by_identifier_sxpb
+from sxpb_game.eval.utils import (
+    call_api,
+    generate_prompt,
+    get_player_by_identifier_sxpb,
+)
 
 
 def format_sxpb_txt(s):

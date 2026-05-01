@@ -4,7 +4,7 @@ import sys
 # Ensure we can import from src
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from game_eval.logic import GameLogic
+from sxpb_game.eval.logic import GameLogic
 from sxpb_game.by_title.tictactoe.logic import TicTacToeLogic
 from sxpb_game.by_title.mafia.logic import MafiaLogic
 

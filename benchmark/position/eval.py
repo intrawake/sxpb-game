@@ -7,7 +7,7 @@ import re
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from game_eval.utils import call_api, generate_prompt
+from sxpb_game.eval.utils import call_api, generate_prompt
 import sxpb
 from sxpb_game.by_title.tictactoe.logic import TicTacToeLogic
 

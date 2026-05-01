@@ -4,7 +4,7 @@ import random
 from typing import List, Optional, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.logic import GameLogic, MoveResult
+from sxpb_game.eval.logic import GameLogic, MoveResult
 
 SUITS = ["S", "H", "D", "C"]
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]

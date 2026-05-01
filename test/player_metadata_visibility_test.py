@@ -5,7 +5,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import sxpb
-from game_eval.utils import get_player_by_identifier_sxpb
+from sxpb_game.eval.utils import get_player_by_identifier_sxpb
 
 
 def test_player_metadata_filtering():

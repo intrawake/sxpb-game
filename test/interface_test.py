@@ -621,7 +621,7 @@ def test_trolley_interface():
 def test_all_games_have_parsable_initial_state():
     import importlib
     import inspect
-    from game_eval.logic import GameLogic
+    from sxpb_game.eval.logic import GameLogic
 
     games_dir = os.path.join(
         os.path.dirname(__file__), "..", "src", "sxpb_game", "by_title"

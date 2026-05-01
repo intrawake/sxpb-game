@@ -1,6 +1,6 @@
 import random
 from typing import List, Optional, Tuple
-from game_eval.logic import GameLogic, MoveResult, read_rulebook
+from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class TelephoneLogic(GameLogic):

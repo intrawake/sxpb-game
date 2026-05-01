@@ -1,12 +1,13 @@
-import json
-import urllib.request
-import urllib.error
-import socket
-import time
-import sys
 import argparse
+import json
+import pathlib
 import re
+import socket
 import sxpb
+import sys
+import time
+import urllib.error
+import urllib.request
 
 # API_URL removed
 
@@ -230,7 +231,6 @@ SHARED_FIELDS = {"name", "pronoun", "bio"}
 def get_player_by_identifier_sxpb(players, player_configs=None, visible_indices=None):
     if not player_configs or not visible_indices:
         return ""
-    import sxpb
 
     d = {}
     for i in visible_indices:
@@ -273,6 +273,12 @@ def generate_prompt(game, player_idx: int, player_configs=None) -> str:
         if persona:
             persona_section = f"\n### Secret Persona\n{persona}\n"
 
+    instruction_path = pathlib.Path(__file__).parent / "instruction.md"
+    try:
+        instruction_text = instruction_path.read_text(encoding="utf-8")
+    except Exception:
+        instruction_text = "ERROR: Could not load instruction.md"
+
     return f"""\
 You are a playing agent. You are player: {curr_player_id}
 Your goal is to win the game or force a draw.{rules_section}{persona_section}{player_info_section}
@@ -282,26 +288,12 @@ Your goal is to win the game or force a draw.{rules_section}{persona_section}{pl
 ```
 
 ### Instructions
-Analyze the game state and recent move history.
-Use whatever space you need to think.
-Then, provide your next move in a SxPB markdown code block with your move in the `answer` field:
-```sxpb > /dev/stdout
-(answer "your_move")
-```
-
-See that format? Use it EXACTLY.
-- NO TOOL CALLS
-- FIRST LINE OF BLOCK is "```sxpb > /dev/stdout" with NO BREAK
-- SECOND LINE OF BLOCK is after a line break and starts with "(answer "
-- THIRD LINE OF BLOCK is after another line break and is "```" exactly.
-
-Things to keep in mind:
-- Do not use newlines in your answer string
-- Please keep your answer less than a paragraph if it's even allowed to be that long
+{instruction_text}
 
 Valid indices/moves: {valid_str}
 
 ### Question
 ```sxpb < /dev/stdin
-{sxpb.dumps({"question": prompt_q}).strip()}
-```"""
+{prompt_q}
+```
+"""

@@ -4,7 +4,7 @@ import random
 from typing import List, Optional, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.logic import GameLogic, MoveResult, read_rulebook
+from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class CthulhuLogic(GameLogic):

@@ -6,7 +6,7 @@ from typing import List, Optional
 
 # Ensure we can import from src
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from game_eval.logic import GameLogic, MoveResult
+from sxpb_game.eval.logic import GameLogic, MoveResult
 
 
 class ConnectFourLogic(GameLogic):
