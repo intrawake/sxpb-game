@@ -629,14 +629,14 @@ def main():
         )
         sys.exit(1)
 
-    if args.rendezqueue_api_url:
+    if external_players:
         print(
             f"Starting Authoritative Game Server for '{args.game}' on {args.rendezqueue_api_url}"
         )
+        print(f"Lobby: {game_key}")
     else:
         print(f"Starting Authoritative Game Server for '{args.game}' (Local Only)")
 
-    print(f"Lobby: {game_key}")
     for p, conf in zip(players, player_configs):
         if "model" in conf:
             print(f"Player {p} managed by LLM: {conf.get('model', 'default')}")
