@@ -44,13 +44,42 @@ pdm install
 
 ### Running a Game Server
 
-You can run a game between multiple LLM agents (or algorithmic players) using the provided server:
+You can run a game between multiple LLM agents (or algorithmic players) using the provided server. By default, games with only automated players run locally.
 
 ```shell
 # Example: Wordle Battle between two models with logging
 pdm run server --game wordle \
   --players "(()) (() (name Codemaker) (model dono-gemini-lite)) (() (name Codebreaker) (model dono-gemma3-27b))" \
   --log_sxpb /tmp/wordle_match.sxpb
+```
+
+### Interactive Play with Clients
+
+To play a game interactively (e.g., Human vs Human), you must provide a `--rendezqueue_api_url`. A public instance is available at `https://rendezqueue.com/tryswap`.
+
+#### Example: Human vs Human Tic-Tac-Toe
+
+1. **Start the server:**
+   ```bash
+   pdm run server --game tictactoe \
+     --rendezqueue_api_url https://rendezqueue.com/tryswap \
+     --players "(()) () ()"
+   ```
+   The server will print commands for both players to join, including a unique key.
+
+2. **Player p0 joins (in a new terminal):**
+   ```bash
+   pdm run client --rendezqueue_api_url https://rendezqueue.com/tryswap --key tictactoe_xxxxxx_X
+   ```
+
+3. **Player p1 joins (in a new terminal):**
+   ```bash
+   pdm run client --rendezqueue_api_url https://rendezqueue.com/tryswap --key tictactoe_xxxxxx_O
+   ```
+
+To make a move, use the `--move` flag:
+```bash
+pdm run client --rendezqueue_api_url https://rendezqueue.com/tryswap --key ... --move a1
 ```
 
 ## License

@@ -18,7 +18,6 @@ def main():
     )
     parser.add_argument(
         "--rendezqueue_api_url",
-        default="https://rendezqueue.com/tryswap",
         help="Rendezqueue service URL",
     )
     parser.add_argument(
@@ -32,6 +31,10 @@ def main():
         "--status", action="store_true", help="Just wait for turn/status and exit."
     )
     args = parser.parse_args()
+
+    if not args.rendezqueue_api_url:
+        print("Error: --rendezqueue_api_url is required for the client to connect.")
+        sys.exit(1)
 
     # The key provided MUST be the role-specific key (lobby_X or lobby_O)
     player_key = args.key

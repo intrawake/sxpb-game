@@ -82,7 +82,6 @@ def main():
     )
     parser.add_argument(
         "--rendezqueue_api_url",
-        default="https://rendezqueue.com/tryswap",
         help="Rendezqueue service URL",
     )
     parser.add_argument("--key", help="Base game key (default: name of the game)")
@@ -617,9 +616,26 @@ def main():
     while len(player_configs) < len(players):
         player_configs.append({})
 
-    print(
-        f"Starting Authoritative Game Server for '{args.game}' on {args.rendezqueue_api_url}"
-    )
+    external_players = []
+    for p, conf in zip(players, player_configs):
+        if not isinstance(conf, dict) or (
+            "model" not in conf and "algorithm" not in conf
+        ):
+            external_players.append(p)
+
+    if external_players and not args.rendezqueue_api_url:
+        print(
+            f"Error: --rendezqueue_api_url is required because players {external_players} are expected to connect externally."
+        )
+        sys.exit(1)
+
+    if args.rendezqueue_api_url:
+        print(
+            f"Starting Authoritative Game Server for '{args.game}' on {args.rendezqueue_api_url}"
+        )
+    else:
+        print(f"Starting Authoritative Game Server for '{args.game}' (Local Only)")
+
     print(f"Lobby: {game_key}")
     for p, conf in zip(players, player_configs):
         if "model" in conf:
