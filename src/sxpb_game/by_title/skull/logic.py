@@ -111,17 +111,19 @@ class SkullLogic(GameLogic):
             return "Everyone must play one disc to start the round. Reply with: `play rose <optional banter>` or `play skull <optional banter>`."
         elif self.phase == "PLAY_OR_BID":
             max_bid = self._total_discs_on_table()
-            return f"You can play a disc (e.g., `play rose <banter>`) or start the bidding (e.g., `bid 1 <banter>`). Max bid is {max_bid}."
+            return f"You can play a disc (e.g., `play rose <banter>`) or start the bidding (e.g., `bid 1`). Max bid is {max_bid}."
         elif self.phase == "BIDDING":
             max_bid = self._total_discs_on_table()
-            return f"The highest bid is {self.highest_bid}. You can raise (e.g., `bid {self.highest_bid + 1} <banter>`) up to {max_bid} or `pass <banter>`."
+            return f"The highest bid is {self.highest_bid}. You can raise (e.g., `bid {self.highest_bid + 1}`) up to {max_bid} or `pass`."
         elif self.phase == "CHALLENGE_FLIP":
             prompt = "You are the Challenger. "
             my_stack = self.players[self.current_player]["stack"]
             if not all(isinstance(d, tuple) and d[0] == "flipped" for d in my_stack):
-                prompt += "You must flip all of your own discs first. Reply: `flip my stack <optional banter>`."
+                prompt += (
+                    "You must flip all of your own discs first. Reply: `flip my stack`."
+                )
             else:
-                prompt += "Choose a player's stack to flip their top disc. Reply: `flip p<idx> <optional banter>`."
+                prompt += "Choose a player's stack to flip their top disc. Reply: `flip p<idx>`."
                 if not self.hover_exchange_done:
                     prompt += "\nOptionally, you can hover and banter first: `p<idx>? <banter>`."
             return prompt
@@ -234,9 +236,11 @@ class SkullLogic(GameLogic):
                         pass
                 return MoveResult(True, "")
 
-            elif self.phase == "PLAY_OR_BID" and move_lower.startswith("bid "):
-                parts = move[4:].strip().split(" ", 1)
-                if not parts[0].isdigit():
+            elif self.phase == "PLAY_OR_BID" and move_lower.startswith("bid"):
+                parts = move[3:].strip().split()
+                if len(parts) > 1:
+                    return MoveResult(False, "Banter is not allowed on bid moves.")
+                if not parts or not parts[0].isdigit():
                     return MoveResult(False, "Invalid bid number.")
                 bid_amt = int(parts[0])
 
@@ -259,9 +263,11 @@ class SkullLogic(GameLogic):
             return MoveResult(False, "Invalid action for this phase.")
 
         if self.phase == "BIDDING":
-            if move_lower.startswith("bid "):
-                parts = move[4:].strip().split(" ", 1)
-                if not parts[0].isdigit():
+            if move_lower.startswith("bid"):
+                parts = move[3:].strip().split()
+                if len(parts) > 1:
+                    return MoveResult(False, "Banter is not allowed on bid moves.")
+                if not parts or not parts[0].isdigit():
                     return MoveResult(False, "Invalid bid number.")
                 bid_amt = int(parts[0])
 
@@ -284,9 +290,9 @@ class SkullLogic(GameLogic):
                 return MoveResult(True, "")
 
             elif move_lower.startswith("pass"):
+                if len(move_lower.strip().split()) > 1:
+                    return MoveResult(False, "Banter is not allowed on pass moves.")
                 self.passed_players.add(self.current_player)
-
-                self._record_move(p_name, move)
 
                 if len(self.passed_players) >= self._active_players_count() - 1:
                     assert self.highest_bidder is not None
@@ -325,7 +331,9 @@ class SkullLogic(GameLogic):
                 return MoveResult(True, "")
 
             elif move_lower.startswith("flip p"):
-                parts = move[5:].strip().split(" ", 1)
+                parts = move_lower[5:].strip().split()
+                if len(parts) > 1:
+                    return MoveResult(False, "Banter is not allowed on flip moves.")
                 target_str = parts[0]
 
                 if not target_str.startswith("p") or not target_str[1:].isdigit():
@@ -438,7 +446,7 @@ class SkullLogic(GameLogic):
     def render_player_history(self, player_idx: int) -> str:
         if not self.history:
             return "((history))"
-        h_lines = "\n ".join(self.history[-20:])
+        h_lines = "\n ".join(self.history)
         return f"((history)\n {h_lines}\n)"
 
     def render_player_view(self, player_idx: int) -> str:
