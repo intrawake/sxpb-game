@@ -49,12 +49,6 @@ def get_all_example_titles() -> list[str]:
     return sorted(titles)
 
 
-def normalize_sxpb(text: str) -> str:
-    lines = [line.strip() for line in text.strip().splitlines()]
-    lines = [line for line in lines if line]
-    return "\n".join(lines)
-
-
 def test_directory_consistency() -> None:
     logic_titles = set(get_all_game_titles())
     example_titles = set(get_all_example_titles())
@@ -212,12 +206,56 @@ def test_game_format(game_title: str) -> None:
     generated_state = game.render_player_view(test_player_idx).strip()
     generated_history = game.render_player_history(test_player_idx).strip()
 
-    if normalize_sxpb(generated_state) != normalize_sxpb(expected_state):
+    if generated_state.strip() != expected_state.strip():
         assert False, (
             f"State mismatch for {game_title}.\nExpected:\n{expected_state}\n\nGot:\n{generated_state}"
         )
 
-    if normalize_sxpb(generated_history) != normalize_sxpb(expected_history):
+    if generated_history.strip() != expected_history.strip():
         assert False, (
             f"History mismatch for {game_title}.\nExpected:\n{expected_history}\n\nGot:\n{generated_history}"
         )
+
+
+def test_snapshot_catches_formatting_drift() -> None:
+    """Prove that the exact comparison catches formatting changes.
+
+    Deliberately corrupt the tictactoe snapshot with an extra space indent
+    and verify the comparison detects it. This guards against the
+    whitespace-washing bug that silently disabled snapshot comparison for
+    over 3 months.
+    """
+    example_dir = os.path.join(
+        os.path.dirname(__file__), "..", "example", "view_by_title", "tictactoe"
+    )
+    state_sxpb_path = os.path.join(example_dir, "state.sxpb")
+    players_sxpb_path = os.path.join(example_dir, "players.sxpb")
+
+    with open(state_sxpb_path, "r") as f:
+        expected_state = f.read().strip()
+
+    with open(players_sxpb_path, "r") as f:
+        premoves_data = cast(list[dict[str, Any]], sxpb.loads(f.read()))
+
+    game = TicTacToeLogic()
+    while not game.is_game_over():
+        curr = game.get_current_player()
+        if curr is None or not premoves_data[curr].get("premoves"):
+            break
+        move = premoves_data[curr]["premoves"].pop(0)
+        game.make_move(curr, move)
+
+    generated_state = game.render_player_view(0).strip()
+
+    # Sanity: real snapshot matches real output.
+    assert generated_state == expected_state, (
+        "Snapshot is out of date — regenerate it before running this test."
+    )
+
+    # Corrupt: insert an extra space on the first row line after (board.
+    corrupted = expected_state.replace("\n (row3", "\n  (row3", 1)
+    assert corrupted != expected_state, "Corruption had no effect"
+    assert generated_state != corrupted, (
+        "Comparison FAILED to detect formatting drift!\n"
+        "An extra space indent should cause a mismatch."
+    )
