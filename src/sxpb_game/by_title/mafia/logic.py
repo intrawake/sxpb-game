@@ -625,6 +625,7 @@ class MafiaLogic(GameLogic):
 
         if deaths:
             for d in deaths:
+                assert d is not None
                 self.alive[d] = False
                 self.history.append(f"((event death) (player p{d + 1}))")
         else:

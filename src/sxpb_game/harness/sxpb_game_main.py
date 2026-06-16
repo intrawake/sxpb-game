@@ -23,6 +23,7 @@ from sxpb_game.eval.logic import GameLogic
 import sxpb
 from sxpb_game.eval.utils import (
     call_api,
+    generate_client_prompt,
     generate_prompt,
     get_player_by_identifier_sxpb,
 )
@@ -144,6 +145,11 @@ def main():
         "--openai_api_url",
         dest="openai_api_url",
         help="OpenAI-compatible API URL (e.g. https://api.openai.com/v1)",
+    )
+    parser.add_argument(
+        "--client_full_prompt_on",
+        action="store_true",
+        help="Send full LLM-style instructions (rules + format) to clients along with the sxpb view",
     )
     args = parser.parse_args(new_argv)
 
@@ -715,6 +721,11 @@ def main():
                 "winner": winner,
                 "valid_moves": valid_moves,
             }
+            if getattr(args, "client_full_prompt_on", False):
+                player_idx = players.index(player_id)
+                state["full_prompt"] = generate_client_prompt(
+                    game, player_idx, player_configs
+                )
             if player_id in player_clients:
                 player_clients[player_id].send(json.dumps(state))
                 sys.stdout.write(f"Sent state to Player {player_id}\n")
@@ -1022,6 +1033,13 @@ def main():
 
                     elif action == "MOVE":
                         move = msg.get("coord")
+                        if getattr(args, "client_full_prompt_on", False) and move:
+                            try:
+                                parsed = sxpb.loads(move)
+                                if isinstance(parsed, dict) and "answer" in parsed:
+                                    move = parsed["answer"]
+                            except Exception:
+                                pass
                         with game_lock:
                             if game.get_current_player() != players.index(player_id):
                                 sys.stdout.write(

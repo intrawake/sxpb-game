@@ -297,3 +297,62 @@ Valid indices/moves: {valid_str}
 {prompt_q}
 ```
 """
+
+
+def generate_client_prompt(game, player_idx: int, player_configs=None) -> str:
+    """Generates a prompt for external clients connecting via rendezqueue.
+
+    Same as generate_prompt but replaces the LLM-specific ### Instructions block
+    with guidance for using the --move flag with SxPB format.
+    """
+    players = game.get_player_identifiers()
+    curr_player_id = players[player_idx]
+
+    state_sxpb = game.render_player_full_sxpb(player_idx)
+
+    visible_indices = getattr(
+        game, "get_visible_players", lambda idx: list(range(len(players)))
+    )(player_idx)
+    players_sxpb = get_player_by_identifier_sxpb(
+        players, player_configs, visible_indices
+    )
+    player_info_section = (
+        f"\n### Player Information\n```sxpb\n{players_sxpb}\n```\n"
+        if players_sxpb
+        else ""
+    )
+
+    prompt_q = game.get_prompt(player_idx)
+    valid_moves = getattr(game, "get_valid_moves", lambda: [])()
+    valid_str = ", ".join(valid_moves) if valid_moves else "Any valid move"
+
+    rules = getattr(game, "get_rules", lambda: "")()
+    rules_section = f"\n\n### Rules\n{rules}\n" if rules else ""
+
+    persona_section = ""
+    if player_configs and player_idx < len(player_configs):
+        persona = player_configs[player_idx].get("persona")
+        if persona:
+            persona_section = f"\n### Secret Persona\n{persona}\n"
+
+    return f"""\
+You are a playing agent. You are player: {curr_player_id}
+Your goal is to win the game or force a draw.{rules_section}{persona_section}{player_info_section}
+### Current Game State (SxPB format)
+```sxpb
+{state_sxpb}
+```
+
+### Instructions
+To make your move, use the --move flag with your answer as an SxPB string:
+  pdm run client ... --move '(answer "<your_move>")'
+
+The server will parse your SxPB answer the same way it parses LLM responses.
+
+Valid indices/moves: {valid_str}
+
+### Question
+```sxpb < /dev/stdin
+{prompt_q}
+```
+"""

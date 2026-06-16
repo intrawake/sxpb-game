@@ -12,7 +12,7 @@ dependencies = [
     "sxpb @ git+https://github.com/sxproto/sxpb-py@04fbc53342cb7c7dd75166be955253711966f5e2",
     "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@trunk",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.pdm.dev-dependencies]
 dev = [

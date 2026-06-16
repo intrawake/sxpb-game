@@ -207,3 +207,291 @@ def test_server_log_sxpb_old_maid(env, rendezqueue_server, tmp_path):
     assert '(turn (p 1) (txt "0? Are you hiding the Old Maid?"))' in content
     assert '(turn (p 2) (txt "Maybe!"))' in content
     assert '(turn (p 1) (txt "0! I take it!"))' in content
+
+
+def test_client_full_prompt_on_status_shows_full_prompt(
+    env, rendezqueue_server, tmp_path
+):
+    """When --client_full_prompt_on is set, client --status shows the full LLM prompt."""
+    url = rendezqueue_server
+    lobby_key = f"test_game_{int(time.time())}"
+
+    # X is external (client connects), O is LLM with a premove so the game doesn't hang
+    players_file = tmp_path / "players.sxpb"
+    players_file.write_text(
+        "(())\n"
+        '(() (name "Alice"))\n'
+        '(() (model "empty-response-model") (premoves (()) "b2"))\n'
+    )
+
+    server_proc = subprocess.Popen(
+        [
+            sys.executable,
+            SERVER_PY,
+            "--rendezqueue_api_url",
+            url,
+            "--key",
+            lobby_key,
+            "--openai_api_url",
+            "http://localhost:11434/v1",
+            "--game",
+            "tictactoe",
+            "--players",
+            str(players_file),
+            "--client_full_prompt_on",
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        time.sleep(3)
+
+        x_key = f"{lobby_key}_X"
+
+        # Client connects with --status. Should receive full prompt.
+        x_res = subprocess.run(
+            [
+                sys.executable,
+                CLIENT_PY,
+                "--rendezqueue_api_url",
+                url,
+                "--key",
+                x_key,
+                "--status",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        assert x_res.returncode == 0, f"Client failed: {x_res.stderr}"
+        assert "playing agent" in x_res.stdout, (
+            f"Client prompt did not contain 'playing agent'.\nSTDOUT:\n{x_res.stdout}\nSTDERR:\n{x_res.stderr}"
+        )
+        assert "tictactoe" in x_res.stdout.lower() or "Tic-Tac-Toe" in x_res.stdout, (
+            f"Client prompt did not reference tic-tac-toe.\nSTDOUT:\n{x_res.stdout}"
+        )
+
+    finally:
+        server_proc.terminate()
+        server_proc.wait()
+
+
+def test_client_full_prompt_on_move_shows_full_prompt(
+    env, rendezqueue_server, tmp_path
+):
+    """When --client_full_prompt_on is set, client --move shows the full prompt after move is accepted."""
+    url = rendezqueue_server
+    lobby_key = f"test_game_{int(time.time())}"
+
+    # X is external (client connects and moves), O is LLM with premoves
+    players_file = tmp_path / "players.sxpb"
+    players_file.write_text(
+        "(())\n"
+        '(() (name "Alice"))\n'
+        '(() (model "empty-response-model") (premoves (()) "b2" "c3"))\n'
+    )
+
+    server_proc = subprocess.Popen(
+        [
+            sys.executable,
+            SERVER_PY,
+            "--rendezqueue_api_url",
+            url,
+            "--key",
+            lobby_key,
+            "--openai_api_url",
+            "http://localhost:11434/v1",
+            "--game",
+            "tictactoe",
+            "--players",
+            str(players_file),
+            "--client_full_prompt_on",
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        time.sleep(3)
+
+        x_key = f"{lobby_key}_X"
+
+        # Client sends a valid move. After move is accepted, should get updated state with full prompt.
+        x_res = subprocess.run(
+            [
+                sys.executable,
+                CLIENT_PY,
+                "--rendezqueue_api_url",
+                url,
+                "--key",
+                x_key,
+                "--move",
+                "a1",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        assert x_res.returncode == 0, f"Client failed: {x_res.stderr}"
+        assert "playing agent" in x_res.stdout, (
+            f"Client prompt did not contain 'playing agent'.\nSTDOUT:\n{x_res.stdout}\nSTDERR:\n{x_res.stderr}"
+        )
+
+    finally:
+        server_proc.terminate()
+        server_proc.wait()
+
+
+def test_client_full_prompt_on_game_over_skips_full_prompt(
+    env, rendezqueue_server, tmp_path
+):
+    """When --client_full_prompt_on is set, client suppresses full prompt on game over."""
+    url = rendezqueue_server
+    lobby_key = f"test_game_{int(time.time())}"
+
+    # X is external with premoves to win, O is LLM with premoves.
+    # X wins: a1, b1, c1 (vertical column) — O plays a2, b2.
+    players_file = tmp_path / "players.sxpb"
+    players_file.write_text(
+        "(())\n"
+        '(() (name "Alice") (premoves (()) "a1" "b1" "c1"))\n'
+        '(() (model "empty-response-model") (premoves (()) "a2" "b2"))\n'
+    )
+
+    server_proc = subprocess.Popen(
+        [
+            sys.executable,
+            SERVER_PY,
+            "--rendezqueue_api_url",
+            url,
+            "--key",
+            lobby_key,
+            "--openai_api_url",
+            "http://localhost:11434/v1",
+            "--game",
+            "tictactoe",
+            "--players",
+            str(players_file),
+            "--client_full_prompt_on",
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        time.sleep(3)
+
+        x_key = f"{lobby_key}_X"
+
+        # Client connects. By now premoves should have resolved the game.
+        # The client will see either the current board or GAME_OVER state.
+        # On GAME_OVER, it should NOT include the full prompt.
+        x_res = subprocess.run(
+            [
+                sys.executable,
+                CLIENT_PY,
+                "--rendezqueue_api_url",
+                url,
+                "--key",
+                x_key,
+                "--status",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        assert "Final Board:" in x_res.stdout
+        assert "Game Over! Winner: X" in x_res.stdout
+        assert "playing agent" not in x_res.stdout, (
+            f"Client prompt incorrectly contained 'playing agent' on game over.\nSTDOUT:\n{x_res.stdout}"
+        )
+
+    finally:
+        server_proc.terminate()
+        server_proc.wait()
+
+
+def test_client_full_prompt_on_sxpb_move_parsing(env, rendezqueue_server, tmp_path):
+    """When --client_full_prompt_on is set, client moves are parsed as SxPB (answer field)."""
+    url = rendezqueue_server
+    lobby_key = f"test_game_{int(time.time())}"
+
+    # X is external, O is LLM with premove
+    players_file = tmp_path / "players.sxpb"
+    players_file.write_text(
+        "(())\n"
+        '(() (name "Alice"))\n'
+        '(() (model "empty-response-model") (premoves (()) "b2"))\n'
+    )
+
+    server_proc = subprocess.Popen(
+        [
+            sys.executable,
+            SERVER_PY,
+            "--rendezqueue_api_url",
+            url,
+            "--key",
+            lobby_key,
+            "--openai_api_url",
+            "http://localhost:11434/v1",
+            "--game",
+            "tictactoe",
+            "--players",
+            str(players_file),
+            "--client_full_prompt_on",
+        ],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    try:
+        time.sleep(3)
+
+        x_key = f"{lobby_key}_X"
+
+        # Send move as SxPB (answer "a1") — server should parse the answer field.
+        x_res = subprocess.run(
+            [
+                sys.executable,
+                CLIENT_PY,
+                "--rendezqueue_api_url",
+                url,
+                "--key",
+                x_key,
+                "--move",
+                '(answer "a1")',
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        assert x_res.returncode == 0, f"Client failed: {x_res.stderr}"
+        # Move should be accepted — the board should show X at a1.
+        assert "X" in x_res.stdout or "a1" in x_res.stdout.lower(), (
+            f"Move not reflected in output.\nSTDOUT:\n{x_res.stdout}\nSTDERR:\n{x_res.stderr}"
+        )
+        # Prompt should tell the client to use --move with SxPB.
+        assert "--move" in x_res.stdout, (
+            f"Prompt did not mention --move flag.\nSTDOUT:\n{x_res.stdout}"
+        )
+
+    finally:
+        server_proc.terminate()
+        server_proc.wait()

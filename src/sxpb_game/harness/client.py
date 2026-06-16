@@ -117,18 +117,22 @@ def main():
                     # 3. Handle Status Request or Turn Transition
                     elif not move_sent:
                         if curr_player == my_player:
-                            sys.stdout.write("\nCurrent Board:\n")
-                            sys.stdout.write(
-                                "```sxpb\n"
-                                + current_state.get("board_sxpb", "").strip()
-                                + "\n```\n"
-                            )
-                            sys.stdout.write(f"Status: {status}\n")
-                            sys.stdout.write(f"You are: {my_player}\n")
-                            sys.stdout.write(f"Current Player: {curr_player}\n")
-                            sys.stdout.write(
-                                f"Valid moves: {', '.join(current_state.get('valid_moves'))}\n"
-                            )
+                            full_prompt = current_state.get("full_prompt")
+                            if full_prompt:
+                                sys.stdout.write("\n" + full_prompt.strip() + "\n")
+                            else:
+                                sys.stdout.write("\nCurrent Board:\n")
+                                sys.stdout.write(
+                                    "```sxpb\n"
+                                    + current_state.get("board_sxpb", "").strip()
+                                    + "\n```\n"
+                                )
+                                sys.stdout.write(f"Status: {status}\n")
+                                sys.stdout.write(f"You are: {my_player}\n")
+                                sys.stdout.write(f"Current Player: {curr_player}\n")
+                                sys.stdout.write(
+                                    f"Valid moves: {', '.join(current_state.get('valid_moves'))}\n"
+                                )
                             sys.stdout.flush()
                             break
 
@@ -152,18 +156,22 @@ def main():
                                 sys.exit(1)
                         else:
                             if curr_player == my_player:
-                                sys.stdout.write("\nCurrent Board:\n")
-                                sys.stdout.write(
-                                    "```sxpb\n"
-                                    + current_state.get("board_sxpb", "").strip()
-                                    + "\n```\n"
-                                )
-                                sys.stdout.write(f"Status: {status}\n")
-                                sys.stdout.write(f"You are: {my_player}\n")
-                                sys.stdout.write(f"Current Player: {curr_player}\n")
-                                sys.stdout.write(
-                                    f"Valid moves: {', '.join(current_state.get('valid_moves'))}\n"
-                                )
+                                full_prompt = current_state.get("full_prompt")
+                                if full_prompt:
+                                    sys.stdout.write("\n" + full_prompt.strip() + "\n")
+                                else:
+                                    sys.stdout.write("\nCurrent Board:\n")
+                                    sys.stdout.write(
+                                        "```sxpb\n"
+                                        + current_state.get("board_sxpb", "").strip()
+                                        + "\n```\n"
+                                    )
+                                    sys.stdout.write(f"Status: {status}\n")
+                                    sys.stdout.write(f"You are: {my_player}\n")
+                                    sys.stdout.write(f"Current Player: {curr_player}\n")
+                                    sys.stdout.write(
+                                        f"Valid moves: {', '.join(current_state.get('valid_moves'))}\n"
+                                    )
                                 sys.stdout.flush()
                                 break
 

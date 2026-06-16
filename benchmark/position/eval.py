@@ -436,7 +436,9 @@ def main():
     if not args.dump_prompts:
         print("\n--- Summary ---")
         for k, v in results.items():
-            status_icon = {"PASS": "✅", "FAIL": "❌", "INVALID": "🚫"}[v["status"]]
+            st = v["status"]
+            assert st is not None
+            status_icon = {"PASS": "✅", "FAIL": "❌", "INVALID": "🚫"}[st]
             print(
                 f"{k}: {status_icon} {v['status']} (got {v['answer']}, expected {v['expected']})"
             )
