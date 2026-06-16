@@ -1,0 +1,37 @@
+; --- BATTLESHIP ---
+(phase ATTACK)
+
+; Ally Board (X=hit, o=miss, Letter=Ship, .=water)
+(ally_board ("")
+ ; Col: a b c d e f g h i j
+ (row10 . . . . . . . . . .)
+ (row09 . . . . . . . . . .)
+ (row08 D D o . . . . . . .)
+ (row07 . . . . . . . . . .)
+ (row06 S S S . . . . . . .)
+ (row05 . . . . . . . . . .)
+ (row04 . . . . . . . . . .)
+ (row03 C X C . . . . . . .)
+ (row02 . . . . . . . . . .)
+ (row01 A X A A A X X X X .)
+ ; Col: a b c d e f g h i j
+)
+
+; Opponent's Board (X=hit, o=miss, .=unknown)
+(opponent_board ("")
+ ; Col: a b c d e f g h i j
+ (row10 . . . . . . . . . .)
+ (row09 . . . . . . . . . .)
+ (row08 . . . . . . . . . .)
+ (row07 X . . . . . . . . .)
+ (row06 . . . . . . . . . .)
+ (row05 . . . . . . . . . .)
+ (row04 . . . . . . . . . .)
+ (row03 . . X . . X . . . .)
+ (row02 . o X . . X . X . .)
+ (row01 . . X . . X . X . .)
+ ; Col: a b c d e f g h i j
+)
+
+(ally_ships (()) carrier cruiser submarine destroyer)
+(opponent_ships (()) carrier battleship)

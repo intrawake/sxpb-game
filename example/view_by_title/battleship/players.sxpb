@@ -1,0 +1,22 @@
+(())
+
+(()
+ (premoves (())
+  "place carrier a1 h"
+  "place battleship f1 h"
+  "place cruiser a3 h"
+  "place submarine a6 h"
+  "place destroyer a8 h"
+  "fire b2 a7 c2 f2 h2"
+  "fire h1 f1 f3 c1 c3. I'll find where your boats are!"
+))
+(()
+ (premoves (())
+  "place carrier a1 v"
+  "place battleship a6 v"
+  "place cruiser c1 v"
+  "place submarine f1 v"
+  "place destroyer h1 v"
+  "fire b1 g1 b3 f1 c8"
+  "fire h1 i1. Wow lucky shots."
+))

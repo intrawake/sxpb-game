@@ -25,7 +25,7 @@ from sxpb_game.by_title.telephone.logic import TelephoneLogic
 from sxpb_game.by_title.cthulhu.logic import CthulhuLogic
 from sxpb_game.by_title.old_maid.logic import OldMaidLogic
 from sxpb_game.by_title.skull.logic import SkullLogic
-
+from sxpb_game.by_title.battleship.logic import BattleshipLogic
 
 def get_all_game_titles() -> list[str]:
     base_dir = os.path.join(
@@ -174,6 +174,9 @@ def test_game_format(game_title: str) -> None:
     elif game_title == "skull":
         game = SkullLogic(num_players=4)
         test_player_idx = 1
+    elif game_title == "battleship":
+        game = BattleshipLogic()
+        test_player_idx = 0
     else:
         assert False, (
             f"Unknown game {game_title} - logic not imported in format_test.py"
