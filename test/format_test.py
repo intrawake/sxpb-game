@@ -27,6 +27,7 @@ from sxpb_game.by_title.old_maid.logic import OldMaidLogic
 from sxpb_game.by_title.skull.logic import SkullLogic
 from sxpb_game.by_title.battleship.logic import BattleshipLogic
 
+
 def get_all_game_titles() -> list[str]:
     base_dir = os.path.join(
         os.path.dirname(__file__), "..", "src", "sxpb_game", "by_title"

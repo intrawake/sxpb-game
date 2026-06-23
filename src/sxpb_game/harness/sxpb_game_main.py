@@ -20,6 +20,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from rendezqueue.client import RendezqueueClient
 from sxpb_game.eval.logic import GameLogic
+from sxpb_llm import (
+    load_model_definitions,
+    resolve_model,
+    parse_sxpb_answer,
+)
 import sxpb
 from sxpb_game.eval.utils import (
     call_api,
@@ -177,16 +182,7 @@ def main():
         if args.shuffle_players:
             shuffle_player_configs(player_configs, args.shuffle_players)
 
-    model_overrides = {}
-    if args.model_by_name:
-        if args.model_by_name.strip().startswith("("):
-            model_overrides = sxpb.loads(args.model_by_name)
-        else:
-            with open(args.model_by_name, "r") as f:
-                model_overrides = sxpb.loads(f.read())
-        if not isinstance(model_overrides, dict):
-            print("Warning: --model_by_name must parse to a dict, ignoring.")
-            model_overrides = {}
+    definitions = load_model_definitions(args.model_by_name)
 
     try:
         try:
@@ -221,29 +217,15 @@ def main():
         reasoning_effort = conf.get(
             "reasoning_effort", getattr(args, "reasoning_effort", None)
         )
-        req_timeout = 0
-
-        model = requested_model
-        api_kwargs = {}
-
-        if isinstance(requested_model, str):
-            if requested_model in model_overrides:
-                m_over = model_overrides[requested_model]
-                if isinstance(m_over, str):
-                    model = m_over
-                elif isinstance(m_over, dict):
-                    api_kwargs = dict(m_over)
-                    if "fullname" in api_kwargs:
-                        model = api_kwargs.pop("fullname")
-
+        mc = resolve_model(
+            requested_model, definitions, reasoning_effort=reasoning_effort
+        )
+        api_kwargs = dict(mc.extra)
         if "temperature" in api_kwargs:
             api_kwargs["temperature"] = float(api_kwargs["temperature"])
-        if "reasoning_effort" in api_kwargs:
-            reasoning_effort = api_kwargs.pop("reasoning_effort")
-        if "timeout" in api_kwargs:
-            req_timeout = int(api_kwargs.pop("timeout"))
-
-        return model, reasoning_effort, req_timeout, api_kwargs
+        if mc.token_gen_limit != 16384:
+            api_kwargs["max_tokens"] = mc.token_gen_limit
+        return mc.fullname, mc.reasoning_effort, mc.timeout, api_kwargs
 
     def write_logs_and_exit(code):
         if args.final_view_sxpb:
@@ -914,23 +896,7 @@ def main():
                     attempt += 1
                     continue
 
-                move = None
-
-                matches = list(
-                    re.finditer(
-                        r"(?:^|\n)[ \t]*```[ \t]*sxpb[ \t]*>[ \t]*/dev/stdout[ \t]*\r?\n(.*?)\r?\n[ \t]*```[ \t]*(?:\r?\n|$)",
-                        content,
-                        re.DOTALL,
-                    )
-                )
-                if matches:
-                    block_content = matches[-1].group(1)
-                    try:
-                        parsed_block = sxpb.loads(block_content)
-                        if isinstance(parsed_block, dict) and "answer" in parsed_block:
-                            move = parsed_block["answer"]
-                    except Exception as e:
-                        sys.stdout.write(f"Failed to parse sxpb block: {e}\n")
+                move = parse_sxpb_answer(content)
 
                 with game_lock:
                     if game.get_current_player() != idx:

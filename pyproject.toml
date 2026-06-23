@@ -11,6 +11,7 @@ dependencies = [
     "uvicorn>=0.20.0",
     "sxpb @ git+https://github.com/sxproto/sxpb-py@04fbc53342cb7c7dd75166be955253711966f5e2",
     "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@trunk",
+    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm@6ef5d7f4405f878f662e698e7a800ce15db51fc0",
 ]
 requires-python = ">=3.10"
 
