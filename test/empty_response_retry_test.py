@@ -91,16 +91,27 @@ def test_empty_response_retry():
                 print("FAIL: Expected at least 4 invalid attempts logged.")
                 sys.exit(1)
 
-            # Check that the repeated empty responses caused the messages array to reset periodically
+            # Empty responses reset to clean prompt every time, so each
+            # attempt should see exactly 1 message (the original prompt).
             for i, line in enumerate(lines):
                 rec = json.loads(line)
                 api_req = rec.get("api_request", {})
                 messages = api_req.get("messages", [])
 
-                expected_len = 1 if i % 2 == 0 else 3
-                assert len(messages) == expected_len, (
-                    f"Expected {expected_len} messages on attempt {i + 1}, got {len(messages)}"
+                assert len(messages) == 1, (
+                    f"Expected 1 message on attempt {i + 1}, got {len(messages)}"
                 )
+
+                for j, msg in enumerate(messages):
+                    if (
+                        msg.get("role") == "assistant"
+                        and not msg.get("content", "").strip()
+                    ):
+                        print(
+                            f"FAIL: Empty assistant found in verbose log "
+                            f"entry {i}, index {j}."
+                        )
+                        sys.exit(1)
 
     print("PASS: Empty response retry test successful.")
 

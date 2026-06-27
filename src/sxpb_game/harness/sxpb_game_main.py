@@ -805,6 +805,7 @@ def main():
                 "non-existent-model",
                 "empty-response-model",
                 "invalid-response-model",
+                "reject-empty-assistant-model",
             ]
             and not args.openai_api_url
         ):
@@ -845,6 +846,22 @@ def main():
                             {"messages": list(messages)},
                             None,
                         )
+                    elif model == "reject-empty-assistant-model":
+                        # Simulates Cohere: returns None (like API 400) when
+                        # messages contain an empty assistant, else empty string.
+                        has_empty_assistant = any(
+                            msg.get("role") == "assistant"
+                            and not msg.get("content", "").strip()
+                            for msg in messages
+                        )
+                        if has_empty_assistant:
+                            content, api_req, api_res = None, None, None
+                        else:
+                            content, api_req, api_res = (
+                                "",
+                                {"messages": list(messages)},
+                                None,
+                            )
                     else:
                         content, api_req, api_res = call_api(
                             model,
@@ -879,20 +896,9 @@ def main():
                         f"LLM provided empty response for player {curr_player_id}.\n"
                     )
                     sys.stdout.flush()
-                    if (
-                        len(messages) >= 3
-                        and messages[-2].get("role") == "assistant"
-                        and messages[-2].get("content") == ""
-                    ):
-                        messages = [{"role": "user", "content": prompt}]
-                    else:
-                        messages.append({"role": "assistant", "content": ""})
-                        messages.append(
-                            {
-                                "role": "user",
-                                "content": f"Received empty response. {reason} Please respond with ONLY one of the valid options/indices: {valid_str} {prompt_format}",
-                            }
-                        )
+                    # Empty response: reset to clean prompt. Wipes any previous
+                    # invalid-reply context so the model gets a fresh start.
+                    messages = [{"role": "user", "content": prompt}]
                     attempt += 1
                     continue
 
