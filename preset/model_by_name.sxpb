@@ -8,12 +8,13 @@
  (fullname aistudio/gemma-4-31b-it)
 )
 
-(dono-gemma3-12b
- (fullname aistudio/gemma-3-12b-it)
+(dono-cohere-north-mini
+ (fullname cohere/north-mini-code)
 )
-(dono-gemma3-27b
- (fullname aistudio/gemma-3-27b-it)
+(dono-poolside-laguna-m1
+ (fullname poolside/laguna-m.1)
 )
+
 (local-gemma3-27b
  (fullname llama.cpp/unsloth-gemma-3-27b-it:Q6_K)
 )
