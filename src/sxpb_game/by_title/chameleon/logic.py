@@ -1,6 +1,6 @@
 import random
 from typing import List, Optional, Tuple
-from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
+from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
 
 class ChameleonLogic(GameLogic):
@@ -31,6 +31,18 @@ class ChameleonLogic(GameLogic):
 
     def get_visible_players(self, player_idx: int) -> List[int]:
         return [i for i in range(1, self.num_players + 1)]
+
+    def get_player_outcomes(self) -> dict[int, Outcome]:
+        """Chameleon wins → chameleon WIN, players LOSS.  Vice versa."""
+        if not self.is_game_over() or self.chameleon_idx is None:
+            return {}
+        cham_won = self.winner == "Chameleon"
+        outcomes: dict[int, Outcome] = {}
+        for i in range(self.num_players):
+            pidx = i + 1  # 0 is GM
+            is_cham = i == self.chameleon_idx
+            outcomes[pidx] = Outcome.WIN if is_cham == cham_won else Outcome.LOSS
+        return outcomes
 
     @property
     def winner(self) -> Optional[str]:

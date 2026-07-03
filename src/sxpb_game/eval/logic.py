@@ -1,4 +1,16 @@
+from __future__ import annotations
+
+from enum import Enum
 from typing import List, NamedTuple, Optional, Tuple
+
+
+class Outcome(Enum):
+    WIN = "win"
+    DRAW = "draw"
+    LOSS = "loss"
+
+
+OUTCOME_TO_SCORE = {Outcome.WIN: 1.0, Outcome.DRAW: 0.5, Outcome.LOSS: 0.0}
 
 
 class MoveResult(NamedTuple):
@@ -61,6 +73,25 @@ class GameLogic:
         Returns a tuple of (move_string, error_message).
         """
         return None, f"Algorithm '{algorithm}' not supported for this game."
+
+    def get_player_outcomes(self) -> dict[int, Outcome]:
+        """Return player-index → Outcome.
+
+        The default handles simple 2-player / N-player games where
+        ``self.winner`` is a player identifier (from
+        ``get_player_identifiers()``) or ``"Draw"``.  Team-based and
+        hidden-role games override this.
+        """
+        winner = getattr(self, "winner", None)
+        pids = self.get_player_identifiers()
+        if winner == "Draw":
+            return {i: Outcome.DRAW for i in range(len(pids))}
+        if isinstance(winner, str) and winner in pids:
+            wi = pids.index(winner)
+            return {
+                i: (Outcome.WIN if i == wi else Outcome.LOSS) for i in range(len(pids))
+            }
+        return {}
 
     def get_rules(self) -> str:
         """Returns the rules of the game to be prepended to the player's prompt."""

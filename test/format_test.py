@@ -78,7 +78,7 @@ def test_game_format(game_title: str) -> None:
 
     if not os.path.exists(state_sxpb_path) or not os.path.exists(players_sxpb_path):
         # We handle the error here in case test_directory_consistency didn't fail first
-        pytest.skip(f"Example files missing for {game_title}")  # type: ignore
+        pytest.skip(f"Example files missing for {game_title}")
 
     expected_history = ""
     if os.path.exists(history_sxpb_path):

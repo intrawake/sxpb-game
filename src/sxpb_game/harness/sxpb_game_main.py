@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src")
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from rendezqueue.client import RendezqueueClient
-from sxpb_game.eval.logic import GameLogic
+from sxpb_game.eval.logic import GameLogic, OUTCOME_TO_SCORE
 from sxpb_llm import (
     load_model_definitions,
     resolve_model,
@@ -65,6 +65,52 @@ def shuffle_player_configs(player_configs, indices_str, randint_func=None):
         i = valid_indices[n]
         j = valid_indices[randint_func(0, n)]
         player_configs[i], player_configs[j] = player_configs[j], player_configs[i]
+
+
+def _update_elo_if_configured(
+    elo_file: str | None,
+    game,
+    elo_keys: list[str],
+) -> None:
+    """Compute scores from *game* outcomes and update ELO ratings.
+
+    Called at game conclusion.  Does nothing if *elo_file* is unset or the
+    game didn't finish naturally (e.g. turn limit).
+
+    *elo_keys* must be in the same order as the game's player indices.
+    """
+    if not elo_file:
+        return
+    if not game.is_game_over():
+        return
+
+    try:
+        from sxpb_game.harness.elo import update_elo
+
+        outcomes = game.get_player_outcomes()
+        if not outcomes:
+            return
+
+        player_elo_results = {
+            elo_keys[i]: OUTCOME_TO_SCORE[oc] for i, oc in outcomes.items()
+        }
+        if len(player_elo_results) < len(outcomes):
+            sys.stdout.write(
+                "ELO: skipped — multiple players share the same ELO key (self-play).\n"
+            )
+            return
+
+        deltas = update_elo(elo_file, player_elo_results)
+        sys.stdout.write("ELO ratings updated:\n")
+        for name, (old, new, delta, count) in deltas.items():
+            sign = "+" if delta >= 0 else ""
+            sys.stdout.write(
+                f"  {name}: {old} → {new} ({sign}{delta})  [{count} games]\n"
+            )
+        sys.stdout.flush()
+    except Exception as e:
+        sys.stdout.write(f"Warning: ELO update failed: {e}\n")
+        sys.stdout.flush()
 
 
 def main():
@@ -127,6 +173,12 @@ def main():
     parser.add_argument(
         "--final_view_sxpb",
         help="Filepath to write the final player-0 view of the game (SxPB) to",
+    )
+    parser.add_argument(
+        "--elo_sxpb",
+        dest="elo_file",
+        metavar="FILE",
+        help="Path to elo.sxpb for updating ratings at game conclusion",
     )
     parser.add_argument(
         "--interactive",
@@ -616,6 +668,18 @@ def main():
         )
         sys.exit(1)
 
+    if args.elo_file:
+        non_model = []
+        for p, conf in zip(players, player_configs):
+            if not isinstance(conf, dict) or "model" not in conf:
+                non_model.append(p)
+        if non_model:
+            print(
+                f"Error: --elo_sxpb requires all players to have a model. "
+                f"Non-model players: {non_model}"
+            )
+            sys.exit(1)
+
     if external_players:
         print(
             f"Starting Authoritative Game Server for '{args.game}' on {args.rendezqueue_api_url}"
@@ -1096,6 +1160,19 @@ def main():
                             f"Game concluded (Winner: {winner}). Waiting for players to receive final state...\n"
                         )
                         sys.stdout.flush()
+
+                        # --- ELO update ---
+                        elo_keys: list[str] = []
+                        for conf in player_configs:
+                            model, _, _, _ = get_model_config(conf)
+                            alias = conf.get("model", "")
+                            elo_key = model
+                            if alias and alias in definitions:
+                                elo_key = definitions[alias].extra.get(
+                                    "elo_name", model
+                                )
+                            elo_keys.append(elo_key)
+                        _update_elo_if_configured(args.elo_file, game, elo_keys)
 
                     all_received = True
                     for p in players:

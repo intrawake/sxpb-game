@@ -4,7 +4,7 @@ import random
 from typing import List, Optional, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
+from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
 
 class MafiaLogic(GameLogic):
@@ -53,6 +53,18 @@ class MafiaLogic(GameLogic):
         if not self.game_over:
             return None
         return self.result
+
+    def get_player_outcomes(self) -> dict[int, Outcome]:
+        """Mafia team wins → all Mafia WIN, others LOSS.  Vice versa for Villagers."""
+        if not self.is_game_over() or not self.roles:
+            return {}
+        mafia_won = self.result == "Mafia"
+        outcomes: dict[int, Outcome] = {}
+        for i, role in enumerate(self.roles):
+            pidx = i + 1  # player indices are 1..num_players; 0 is GM
+            is_mafia = role == "Mafia"
+            outcomes[pidx] = Outcome.WIN if is_mafia == mafia_won else Outcome.LOSS
+        return outcomes
 
     def is_game_over(self) -> bool:
         return self.game_over

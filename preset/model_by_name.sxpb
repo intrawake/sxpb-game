@@ -12,7 +12,10 @@
  (fullname cohere/north-mini-code)
 )
 (dono-poolside-laguna-m1
- (fullname poolside/laguna-m.1)
+ (fullname poolside/poolside/laguna-m.1)
+)
+(free-poolside-laguna-xs2-1
+ (fullname poolside/poolside/laguna-xs-2.1)
 )
 
 (local-gemma3-27b

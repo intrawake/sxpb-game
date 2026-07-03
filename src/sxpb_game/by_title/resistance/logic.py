@@ -4,7 +4,7 @@ import random
 from typing import List, Optional, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
+from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
 
 class ResistanceLogic(GameLogic):
@@ -49,6 +49,17 @@ class ResistanceLogic(GameLogic):
 
     def get_visible_players(self, player_idx: int) -> List[int]:
         return [i for i in range(1, self.num_players + 1)]
+
+    def get_player_outcomes(self) -> dict[int, Outcome]:
+        """Spy team wins → all Spies WIN, Resistance LOSS.  Vice versa."""
+        if not self.is_game_over() or not self.teams:
+            return {}
+        spy_won = self.winner == "Spy"
+        outcomes: dict[int, Outcome] = {}
+        for i, team in enumerate(self.teams):
+            is_spy = team == "Spy"
+            outcomes[i] = Outcome.WIN if is_spy == spy_won else Outcome.LOSS
+        return outcomes
 
     @property
     def winner(self) -> Optional[str]:
