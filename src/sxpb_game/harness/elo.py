@@ -13,6 +13,7 @@ New models default to 1500.  K-factor is 64 for models with fewer than
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import sxpb
@@ -63,6 +64,42 @@ def read_elo(path: str | Path) -> dict[str, tuple[int, int]]:
     return result
 
 
+def _normalize_scores(
+    scores: list[float],
+) -> list[float]:
+    """Normalize actual scores so sum equals n/2 (zero-sum property).
+
+    For win/loss games (scores are 1.0 or 0.0):
+      winners get ``n / (2*w)`` instead of ``1.0``
+      losers stay ``0.0``
+
+    For draws (all 0.5): already sums to n/2, no change.
+
+    For 1v1 (w = n/2 = 1): n/(2*1) = 1, no effective change.
+    """
+    n = len(scores)
+
+    # Detect game type.
+    winners = sum(1 for s in scores if s == 1.0)
+    drawers = sum(1 for s in scores if s == 0.5)
+    losers = sum(1 for s in scores if s == 0.0)
+
+    # All-draw: already zero-sum.
+    if drawers == n:
+        return scores[:]
+
+    # Mixed outcomes or partial draws: only normalize win/loss portion.
+    # If any drawers exist, we only normalize the win/loss players.
+    # But for simplicity, if it's a pure win/loss game (no draws):
+    if drawers == 0 and winners + losers == n and winners >= 1:
+        factor = n / (2.0 * winners)
+        return [s * factor if s == 1.0 else s for s in scores]
+
+    # Partial draw (some drew, others won/lost): don't normalize.
+    # This is a rare edge case not used in current games.
+    return scores[:]
+
+
 def update_elo(
     path: str | Path,
     player_results: dict[str, float],
@@ -71,6 +108,10 @@ def update_elo(
     k_established: int = K_ESTABLISHED,
 ) -> dict[str, tuple[int, int, int, int]]:
     """Update ELO ratings for a completed game and write back to disk.
+
+    Applies zero-sum normalization for team games: winners get
+    ``n / (2*w)`` instead of ``1.0`` so that total rating change is
+    zero regardless of team sizes.
 
     Args:
         path: Path to a per-game ``elo.sxpb`` file.
@@ -87,8 +128,20 @@ def update_elo(
     ratings = read_elo(path)
 
     players = list(player_results.keys())
-    scores = list(player_results.values())
+    raw_scores = list(player_results.values())
     n = len(players)
+
+    # Normalize scores to maintain zero-sum for unbalanced teams.
+    scores = _normalize_scores(raw_scores)
+
+    # Log normalization details.
+    if scores != raw_scores:
+        winners = sum(1 for s in raw_scores if s == 1.0)
+        factor = n / (2.0 * winners) if winners >= 1 else 1.0
+        sys.stdout.write(
+            f"ELO: team game (n={n}, w={winners}), "
+            f"winner score normalized to {factor:.3f}\n"
+        )
 
     results: dict[str, tuple[int, int, int, int]] = {}
     new_ratings: dict[str, tuple[int, int]] = {}
