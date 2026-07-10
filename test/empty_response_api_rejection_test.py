@@ -69,7 +69,7 @@ def test_empty_response_with_api_rejection():
             "http://localhost:0/",  # dummy URL
             "--log_sxpb",
             history_file,
-            "--verbose_log_jsonl",
+            "--trace_jsonl",
             verbose_file,
         ]
 

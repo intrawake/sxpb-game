@@ -42,7 +42,7 @@ def test_logging_on_api_failure():
             "http://localhost:0/",  # dummy URL
             "--log_sxpb",
             history_file,
-            "--verbose_log_jsonl",
+            "--trace_jsonl",
             verbose_file,
         ]
 

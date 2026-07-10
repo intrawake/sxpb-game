@@ -34,7 +34,7 @@ def test_fullname_not_treated_as_alias():
             players_sxpb,
             "--model_by_name",
             model_by_name_sxpb,
-            "--verbose_log_jsonl",
+            "--trace_jsonl",
             verbose_file,
             "--retry_limit",
             "1",

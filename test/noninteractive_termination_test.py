@@ -37,7 +37,7 @@ def test_non_interactive_termination_on_invalid_format():
             "http://localhost:0/",
             "--log_sxpb",
             history_file,
-            "--verbose_log_jsonl",
+            "--trace_jsonl",
             verbose_file,
         ]
         # Notice we are NOT passing --interactive

@@ -13,6 +13,7 @@ import textwrap
 import threading
 import time
 import typing
+from datetime import datetime, timezone
 
 # Ensure we can import from src and local modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src"))
@@ -113,6 +114,43 @@ def _update_elo_if_configured(
         sys.stdout.flush()
 
 
+def _write_report_sxpb(
+    path: str,
+    game_name: str,
+    game,
+    players: list[str],
+    player_configs: list[dict],
+) -> None:
+    """Write a unified match report SxPB file.
+
+    Format:
+        (report ...)    — metadata message
+        <view SxPB>     — existing render_player_full_sxpb(0) output
+    """
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    outcomes = game.get_player_outcomes()
+
+    player_records = []
+    for i, pid in enumerate(players):
+        conf = dict(player_configs[i]) if i < len(player_configs) else {}
+        outcome = outcomes.get(i)
+        conf["id"] = pid
+        conf["outcome"] = outcome.value if outcome is not None else "na"
+        player_records.append(conf)
+
+    report = {
+        "game": game_name,
+        "timestamp": timestamp,
+        "players": player_records,
+    }
+    header = sxpb.dumps({"report": report})
+
+    view = game.render_player_full_sxpb(0).strip()
+
+    with open(path, "w") as f:
+        f.write(header + "\n" + view + "\n")
+
+
 def main():
     argv = sys.argv[1:]
     new_argv = []
@@ -167,12 +205,16 @@ def main():
         help="Prompt the LLMs for post-game analysis",
     )
     parser.add_argument(
-        "--verbose_log_jsonl",
-        help="Filepath to write the detailed JSONL turn history to",
+        "--trace_jsonl",
+        help="Filepath to write the detailed JSONL turn trace to",
     )
     parser.add_argument(
         "--final_view_sxpb",
         help="Filepath to write the final player-0 view of the game (SxPB) to",
+    )
+    parser.add_argument(
+        "--report_sxpb",
+        help="Filepath to write the final view SxPB with a (report ...) header",
     )
     parser.add_argument(
         "--elo_sxpb",
@@ -319,9 +361,9 @@ def main():
             except Exception as e:
                 print(f"Failed to write history log: {e}")
 
-        if args.verbose_log_jsonl:
+        if args.trace_jsonl:
             try:
-                with open(args.verbose_log_jsonl, "w") as f:
+                with open(args.trace_jsonl, "w") as f:
                     for entry in move_history:
                         rec = {
                             "valid": entry.get("valid"),
@@ -1295,6 +1337,18 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
         if args.postgame_on:
             ask_llm_for_regrets()
 
+        if args.report_sxpb and game.is_game_over():
+            try:
+                _write_report_sxpb(
+                    args.report_sxpb,
+                    args.game,
+                    game,
+                    players,
+                    player_configs,
+                )
+            except Exception as e:
+                print(f"Failed to write report SxPB: {e}")
+
         if args.final_view_sxpb:
             try:
                 with game_lock:
@@ -1332,8 +1386,8 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
                     safe_txt = format_sxpb_txt(entry["content"])
                     f.write(f"({tag} (p {entry['player_index']}) (txt {safe_txt}))\n")
 
-        if args.verbose_log_jsonl:
-            with open(args.verbose_log_jsonl, "w") as f:
+        if args.trace_jsonl:
+            with open(args.trace_jsonl, "w") as f:
                 for entry in move_history:
                     rec = {
                         "valid": entry.get("valid"),

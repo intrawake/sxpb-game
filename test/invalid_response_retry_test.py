@@ -38,7 +38,7 @@ def test_invalid_response_retry():
             "http://localhost:0/",  # dummy URL
             "--log_sxpb",
             history_file,
-            "--verbose_log_jsonl",
+            "--trace_jsonl",
             verbose_file,
         ]
 

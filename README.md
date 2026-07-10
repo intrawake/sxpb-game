@@ -47,11 +47,18 @@ pdm install
 You can run a game between multiple LLM agents (or algorithmic players) using the provided server. By default, games with only automated players run locally.
 
 ```shell
-# Example: Wordle Battle between two models with logging
+# Example: Wordle battle between two models with report and trace artifacts
 pdm run server --game wordle \
   --players "(()) (() (name Codemaker) (model dono-gemini-lite)) (() (name Codebreaker) (model dono-gemma3-27b))" \
-  --log_sxpb /tmp/wordle_match.sxpb
+  --report_sxpb /tmp/wordle_report.sxpb \
+  --trace_jsonl /tmp/wordle_trace.jsonl
 ```
+
+Useful artifact flags:
+
+- `--report_sxpb`: writes a compact final SxPB report with a top-level `(report ...)` metadata block followed by the final player-0 view.
+- `--trace_jsonl`: writes the detailed per-turn JSONL trace for debugging and audit trails.
+- `--log_sxpb`: writes the compact move-history SxPB log when you need a simple transcript.
 
 ### Interactive Play with Clients
 
