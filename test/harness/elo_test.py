@@ -19,6 +19,21 @@ def test_replay_matches_sequential_updates(tmp_path: Path):
     assert replay_elo(MATCHES) == read_elo(elo_path)
 
 
+def test_write_elo_orders_by_descending_rating(tmp_path: Path):
+    elo_path = tmp_path / "elo.sxpb"
+
+    write_elo(
+        elo_path,
+        {"alpha": (1490, 2), "charlie": (1510, 1), "beta": (1510, 3)},
+    )
+
+    assert elo_path.read_text().splitlines()[1:] == [
+        "(beta (rating 1510) (count 3))",
+        "(charlie (rating 1510) (count 1))",
+        "(alpha (rating 1490) (count 2))",
+    ]
+
+
 def test_write_elo_replaces_complete_file(tmp_path: Path):
     elo_path = tmp_path / "elo.sxpb"
     elo_path.write_text("stale partial data")

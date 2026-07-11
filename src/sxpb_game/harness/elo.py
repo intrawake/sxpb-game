@@ -198,13 +198,17 @@ def update_elo(
     return results
 
 
-def write_elo(path: str | Path, data: Mapping[str, tuple[int, int]]) -> None:
+def write_elo(
+    path: str | Path,
+    data: Mapping[str, tuple[int, int]],
+) -> None:
     """Atomically write ELO data to a flat SxPB file."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    model_names = sorted(data, key=lambda name: (-data[name][0], name))
     lines = ["()"]
-    for model_name in sorted(data):
+    for model_name in model_names:
         rating, count = data[model_name]
         lines.append(f"({model_name} (rating {rating}) (count {count}))")
     lines.append("")
