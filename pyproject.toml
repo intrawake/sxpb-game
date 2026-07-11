@@ -33,6 +33,7 @@ tidytest = {composite = ["test", "tidy", "lint"]}
 test = "pytest -q"
 server = "python -m sxpb_game.harness.sxpb_game_main --model_by_name preset/model_by_name.sxpb"
 client = "python -m sxpb_game.harness.client"
+recalculate-elo = "python -m sxpb_game.tool.recalculate_elo"
 benchmark-position = "python benchmark/position/eval.py --model_by_name preset/model_by_name.sxpb"
 
 [tool.pdm.scripts.fetch-wordle-words]

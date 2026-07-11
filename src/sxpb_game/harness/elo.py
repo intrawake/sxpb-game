@@ -13,7 +13,10 @@ New models default to 1500.  K-factor is 64 for models with fewer than
 
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 import sxpb
@@ -100,56 +103,31 @@ def _normalize_scores(
     return scores[:]
 
 
-def update_elo(
-    path: str | Path,
-    player_results: dict[str, float],
+def apply_elo(
+    ratings: Mapping[str, tuple[int, int]],
+    player_results: Mapping[str, float],
     *,
     k_new: int = K_NEW,
     k_established: int = K_ESTABLISHED,
-) -> dict[str, tuple[int, int, int, int]]:
-    """Update ELO ratings for a completed game and write back to disk.
+) -> tuple[
+    dict[str, tuple[int, int]],
+    dict[str, tuple[int, int, int, int]],
+]:
+    """Apply one completed match to an in-memory rating state.
 
-    Applies zero-sum normalization for team games: winners get
-    ``n / (2*w)`` instead of ``1.0`` so that total rating change is
-    zero regardless of team sizes.
-
-    Args:
-        path: Path to a per-game ``elo.sxpb`` file.
-        player_results: ``{elo_name: score}`` — *score* is 1.0 (win),
-            0.5 (draw), or 0.0 (loss).
-        k_new: K-factor for models with < 10 games played.
-        k_established: K-factor for models with ≥ 10 games.
-
-    Returns:
-        ``{elo_name: (old_rating, new_rating, delta, count)}``
-        suitable for logging / display.
+    Returns ``(new_ratings, deltas)`` without mutating *ratings*.
     """
-    path = Path(path)
-    ratings = read_elo(path)
-
-    players = list(player_results.keys())
+    players = list(player_results)
     raw_scores = list(player_results.values())
+    scores = _normalize_scores(raw_scores)
     n = len(players)
 
-    # Normalize scores to maintain zero-sum for unbalanced teams.
-    scores = _normalize_scores(raw_scores)
-
-    # Log normalization details.
-    if scores != raw_scores:
-        winners = sum(1 for s in raw_scores if s == 1.0)
-        factor = n / (2.0 * winners) if winners >= 1 else 1.0
-        sys.stdout.write(
-            f"ELO: team game (n={n}, w={winners}), "
-            f"winner score normalized to {factor:.3f}\n"
-        )
-
     results: dict[str, tuple[int, int, int, int]] = {}
-    new_ratings: dict[str, tuple[int, int]] = {}
+    new_ratings = dict(ratings)
 
     for i, name in enumerate(players):
         old_rating, count = ratings.get(name, (DEFAULT_RATING, 0))
 
-        # Average expected score against every opponent.
         expected_total = 0.0
         opponent_count = 0
         for j in range(n):
@@ -165,21 +143,64 @@ def update_elo(
 
         new_rating = _new_rating(old_rating, expected, actual, k)
         new_count = count + 1
-
         new_ratings[name] = (new_rating, new_count)
         results[name] = (old_rating, new_rating, new_rating - old_rating, new_count)
 
-    # Preserve unmodified entries.
-    for name, (rating, count) in ratings.items():
-        if name not in new_ratings:
-            new_ratings[name] = (rating, count)
+    return new_ratings, results
 
-    _write_elo(path, new_ratings)
+
+def replay_elo(
+    matches: Iterable[Mapping[str, float]],
+    *,
+    k_new: int = K_NEW,
+    k_established: int = K_ESTABLISHED,
+) -> dict[str, tuple[int, int]]:
+    """Build a fresh rating state by replaying ordered match results."""
+    ratings: dict[str, tuple[int, int]] = {}
+    for player_results in matches:
+        ratings, _ = apply_elo(
+            ratings,
+            player_results,
+            k_new=k_new,
+            k_established=k_established,
+        )
+    return ratings
+
+
+def update_elo(
+    path: str | Path,
+    player_results: dict[str, float],
+    *,
+    k_new: int = K_NEW,
+    k_established: int = K_ESTABLISHED,
+) -> dict[str, tuple[int, int, int, int]]:
+    """Update ELO ratings for a completed game and write back to disk."""
+    path = Path(path)
+    ratings = read_elo(path)
+    raw_scores = list(player_results.values())
+    scores = _normalize_scores(raw_scores)
+
+    if scores != raw_scores:
+        winners = sum(1 for score in raw_scores if score == 1.0)
+        factor = len(raw_scores) / (2.0 * winners) if winners >= 1 else 1.0
+        sys.stdout.write(
+            f"ELO: team game (n={len(raw_scores)}, w={winners}), "
+            f"winner score normalized to {factor:.3f}\n"
+        )
+
+    new_ratings, results = apply_elo(
+        ratings,
+        player_results,
+        k_new=k_new,
+        k_established=k_established,
+    )
+    write_elo(path, new_ratings)
     return results
 
 
-def _write_elo(path: Path, data: dict[str, tuple[int, int]]) -> None:
-    """Write ELO data to a flat SxPB file."""
+def write_elo(path: str | Path, data: Mapping[str, tuple[int, int]]) -> None:
+    """Atomically write ELO data to a flat SxPB file."""
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     lines = ["()"]
@@ -187,8 +208,24 @@ def _write_elo(path: Path, data: dict[str, tuple[int, int]]) -> None:
         rating, count = data[model_name]
         lines.append(f"({model_name} (rating {rating}) (count {count}))")
     lines.append("")
+    content = "\n".join(lines)
 
-    path.write_text("\n".join(lines))
+    file_mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            delete=False,
+        ) as temp_file:
+            temp_file.write(content)
+            temp_path = Path(temp_file.name)
+        os.chmod(temp_path, file_mode)
+        os.replace(temp_path, path)
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
 
 
 def format_leaderboard(
