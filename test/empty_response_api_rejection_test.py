@@ -12,7 +12,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 import json
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -56,7 +55,6 @@ def test_empty_response_with_api_rejection():
             SERVER_PY,
             "--openai_api_url",
             "http://localhost:0/v1",  # dummy, not used by mock
-            "--interactive",
             "--game",
             "tictactoe",
             "--retry_limit",
@@ -82,15 +80,12 @@ def test_empty_response_with_api_rejection():
             text=True,
             cwd=REPO_ROOT,
         )
-        time.sleep(5)
         try:
-            assert proc.stdin is not None
-            proc.stdin.write("quit\n")
-            proc.stdin.flush()
             stdout_output, _ = proc.communicate(timeout=10)
-        except Exception:
+        except subprocess.TimeoutExpired:
             proc.kill()
             stdout_output, _ = proc.communicate()
+            raise AssertionError("Harness did not terminate after exhausting retries")
 
         print("Captured Output:")
         print(stdout_output)

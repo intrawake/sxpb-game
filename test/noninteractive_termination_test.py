@@ -2,7 +2,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SERVER_PY = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness", "sxpb_game_main.py")
@@ -52,28 +51,17 @@ def test_non_interactive_termination_on_invalid_format():
             cwd=REPO_ROOT,
         )
 
-        # Give it some time to fail repeatedly.
-        # It should try 3 times (initial + 2 retries) and then it should TERMINATE
-        # rather than entering an infinite loop because --interactive is not provided.
-        start_time = time.time()
-        terminated = False
-        while time.time() - start_time < 10:
-            if proc.poll() is not None:
-                terminated = True
-                break
-            time.sleep(0.5)
-
-        if not terminated:
+        # It should try 3 times (initial + 2 retries) and then terminate rather
+        # than entering an infinite loop because --interactive is not provided.
+        try:
+            stdout_output, _ = proc.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
             proc.kill()
             stdout_output, _ = proc.communicate()
-            print("Captured Output:")
-            print(stdout_output)
-            print(
-                "FAIL: Server did not terminate on its own after repeated failures without --interactive."
+            raise AssertionError(
+                "Server did not terminate after repeated non-interactive failures.\n"
+                f"Output:\n{stdout_output}"
             )
-            sys.exit(1)
-
-        stdout_output, _ = proc.communicate()
 
         if "LLM Move failed repeatedly" not in stdout_output:
             print("Captured Output:")

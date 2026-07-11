@@ -2,7 +2,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 import json
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -49,18 +48,11 @@ def test_fullname_not_treated_as_alias():
             cwd=REPO_ROOT,
         )
 
-        # Give it a moment to resolve the model.
-        # Since "non-existent-model" is a no-op, it should finish almost instantly.
-        start_time = time.time()
-        while time.time() - start_time < 5:
-            if proc.poll() is not None:
-                break
-            time.sleep(0.1)
-
-        if proc.poll() is None:
+        try:
+            stdout_output, _ = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
             proc.terminate()
-
-        stdout_output, _ = proc.communicate()
+            stdout_output, _ = proc.communicate(timeout=2)
 
         # Verify no network error leaked into stdout
         if "Connection refused" in stdout_output or "URL Error" in stdout_output:

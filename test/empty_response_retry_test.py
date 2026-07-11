@@ -25,7 +25,6 @@ def test_empty_response_retry():
             SERVER_PY,
             "--openai_api_url",
             "http://localhost:11434/v1",
-            "--interactive",
             "--game",
             "tictactoe",
             "--retry_limit",
@@ -51,17 +50,12 @@ def test_empty_response_retry():
             text=True,
             cwd=REPO_ROOT,
         )
-        import time
-
-        time.sleep(5)
         try:
-            assert proc.stdin is not None
-            proc.stdin.write("quit\n")
-            proc.stdin.flush()
             stdout_output, _ = proc.communicate(timeout=10)
-        except Exception:
+        except subprocess.TimeoutExpired:
             proc.kill()
             stdout_output, _ = proc.communicate()
+            raise AssertionError("Harness did not terminate after exhausting retries")
         # Print output for debugging in the CI/environment
         print("Captured Output:")
         print(stdout_output)

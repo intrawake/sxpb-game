@@ -1,8 +1,9 @@
 import sys
 import os
 import threading
-import time
 from unittest.mock import patch
+
+from test.helpers import wait_for_output
 
 sys.path.insert(
     0,
@@ -90,9 +91,8 @@ def test_say_command_resumed_players_bug():
 
         # Suspend player 0 for 99 moves
         mock_stdin.push("suspend 0 99\n")
-        time.sleep(1.0)
 
-        output = mock_stdout.getvalue()
+        output = wait_for_output(mock_stdout, "Game is suspended for Player 0.")
         assert (
             "Game will suspend the next 99 times Player 0 is about to move." in output
         )
@@ -103,11 +103,8 @@ def test_say_command_resumed_players_bug():
 
         # Now P0 is suspended. We use 'say' to make a move for P0.
         mock_stdin.push("say a1\n")
-        time.sleep(
-            1.0
-        )  # wait for say to process, then P1 to move, then it comes back to P0
 
-        output = mock_stdout.getvalue()
+        output = wait_for_output(mock_stdout, "Game is suspended for Player 0.")
         # It should say move accepted for P0
         assert "Say move accepted for Player 0: a1" in output
         # Then LLM move accepted from P1 (which is index 1, but player string might be "1" or whatever)
@@ -119,4 +116,5 @@ def test_say_command_resumed_players_bug():
         assert "LLM Move accepted from X: a3" not in output
 
         mock_stdin.push("quit\n")
-        server_thread.join(timeout=3.0)
+        wait_for_output(mock_stdout, "Exiting server...")
+        server_thread.join(timeout=0.1)

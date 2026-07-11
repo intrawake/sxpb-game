@@ -31,7 +31,6 @@ def test_logging_on_api_failure():
             SERVER_PY,
             "--openai_api_url",
             "http://localhost:11434/v1",
-            "--interactive",
             "--game",
             "tictactoe",
             "--players",
@@ -54,17 +53,12 @@ def test_logging_on_api_failure():
             stderr=subprocess.STDOUT,
             text=True,
         )
-        import time
-
-        time.sleep(5)
         try:
-            assert proc.stdin is not None
-            proc.stdin.write("quit\n")
-            proc.stdin.flush()
             proc.communicate(timeout=10)
-        except Exception:
+        except subprocess.TimeoutExpired:
             proc.kill()
             proc.communicate()
+            raise AssertionError("Harness did not terminate after exhausting retries")
 
         # Check logs even if server failed (it's expected to fail after logging)
         if not os.path.exists(history_file) or not os.path.exists(verbose_file):

@@ -6,6 +6,8 @@ import pytest
 import socket
 from contextlib import closing
 
+from test.helpers import read_until, wait_for_port
+
 # Paths
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 TIC_TAC_TOE_DIR = os.path.join(REPO_ROOT, "tictactoe")
@@ -26,6 +28,7 @@ def env():
     e = os.environ.copy()
     # Ensure src and game root are in PYTHONPATH
     e["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'src')}"
+    e["PYTHONUNBUFFERED"] = "1"
     return e
 
 
@@ -48,13 +51,7 @@ def rendezqueue_server():
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
 
-    # Give it a moment to bind and start listening
-    time.sleep(2)
-    if server_proc.poll() is not None:
-        out, err = server_proc.communicate()
-        raise RuntimeError(
-            f"Rendezqueue server failed to start (code {server_proc.returncode}).\nSTDOUT: {out}\nSTDERR: {err}"
-        )
+    wait_for_port(port, process=server_proc)
 
     yield url
 
@@ -92,8 +89,8 @@ def test_tictactoe_integration(env, rendezqueue_server):
     )
 
     try:
-        # Give the server a moment to start and connect to Rendezqueue
-        time.sleep(3)
+        assert server_proc.stdout is not None
+        read_until(server_proc.stdout, "Server is live")
 
         # Player keys
         x_key = f"{lobby_key}_X"
@@ -117,8 +114,7 @@ def test_tictactoe_integration(env, rendezqueue_server):
             text=True,
         )
 
-        # Give it a second to connect and send the move
-        time.sleep(1.5)
+        read_until(server_proc.stdout, "Move accepted from X: b2")
 
         # 2. Player O joins and checks status (without making a move)
         o_res1 = subprocess.run(

@@ -7,6 +7,8 @@ import socket
 import signal
 from contextlib import closing
 
+from test.helpers import read_until, wait_for_port
+
 # Paths
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SERVER_DIR = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness")
@@ -24,6 +26,7 @@ def find_free_port():
 def env():
     e = os.environ.copy()
     e["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'src')}"
+    e["PYTHONUNBUFFERED"] = "1"
     return e
 
 
@@ -49,7 +52,7 @@ def rendezqueue_server():
         text=True,
     )
 
-    time.sleep(1)  # Wait for server to start
+    wait_for_port(port, process=proc)
     yield url
 
     proc.terminate()
@@ -83,14 +86,11 @@ def test_server_interrupt_clean_exit_and_save(env, rendezqueue_server, tmp_path)
         text=True,
     )
 
-    # Let the server initialize and connect to rendezqueue
-    time.sleep(2)
+    assert server_proc.stdout is not None
+    output_prefix = read_until(server_proc.stdout, "Server is live")
 
-    # Send first SIGINT
+    # Double-tap Ctrl+C after initialization.
     server_proc.send_signal(signal.SIGINT)
-
-    # Wait a tiny bit and send a second SIGINT (simulate double-tap Ctrl+C)
-    time.sleep(0.1)
 
     # We must check if the process is still alive before sending the second signal
     if server_proc.poll() is None:
@@ -99,6 +99,7 @@ def test_server_interrupt_clean_exit_and_save(env, rendezqueue_server, tmp_path)
     # Wait for the server to exit
     try:
         stdout, stderr = server_proc.communicate(timeout=5)
+        stdout = output_prefix + stdout
     except subprocess.TimeoutExpired:
         server_proc.kill()
         stdout, stderr = server_proc.communicate()

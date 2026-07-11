@@ -6,6 +6,8 @@ import pytest
 import socket
 from contextlib import closing
 
+from test.helpers import read_until, wait_for_port
+
 # Paths
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SERVER_DIR = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness")
@@ -24,6 +26,7 @@ def find_free_port():
 def env():
     e = os.environ.copy()
     e["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'src')}"
+    e["PYTHONUNBUFFERED"] = "1"
     return e
 
 
@@ -45,12 +48,7 @@ def rendezqueue_server():
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
 
-    time.sleep(2)
-    if server_proc.poll() is not None:
-        out, err = server_proc.communicate()
-        raise RuntimeError(
-            f"Rendezqueue server failed to start (code {server_proc.returncode}).\nSTDOUT: {out}\nSTDERR: {err}"
-        )
+    wait_for_port(port, process=server_proc)
 
     yield url
 
@@ -84,9 +82,11 @@ def test_server_print_model(env, rendezqueue_server):
         text=True,
     )
 
-    time.sleep(2)
+    assert server_proc.stdout is not None
+    output_prefix = read_until(server_proc.stdout, "Server is live")
     server_proc.terminate()
     out, err = server_proc.communicate()
+    out = output_prefix + out
 
     # Check that it properly prints the model line, not the client command
     assert "Player X managed by LLM:" in out
@@ -122,7 +122,8 @@ def test_client_server_rejection(env, rendezqueue_server):
     )
 
     try:
-        time.sleep(3)
+        assert server_proc.stdout is not None
+        read_until(server_proc.stdout, "Server is live")
 
         x_key = f"{lobby_key}_X"
 
@@ -247,7 +248,8 @@ def test_client_full_prompt_on_status_shows_full_prompt(
     )
 
     try:
-        time.sleep(3)
+        assert server_proc.stdout is not None
+        read_until(server_proc.stdout, "Server is live")
 
         x_key = f"{lobby_key}_X"
 
@@ -319,7 +321,8 @@ def test_client_full_prompt_on_move_shows_full_prompt(
     )
 
     try:
-        time.sleep(3)
+        assert server_proc.stdout is not None
+        read_until(server_proc.stdout, "Server is live")
 
         x_key = f"{lobby_key}_X"
 
@@ -390,11 +393,12 @@ def test_client_full_prompt_on_game_over_skips_full_prompt(
     )
 
     try:
-        time.sleep(3)
+        assert server_proc.stdout is not None
+        read_until(server_proc.stdout, "Game concluded")
 
         x_key = f"{lobby_key}_X"
 
-        # Client connects. By now premoves should have resolved the game.
+        # Client connects after premoves have resolved the game.
         # The client will see either the current board or GAME_OVER state.
         # On GAME_OVER, it should NOT include the full prompt.
         x_res = subprocess.run(
@@ -460,7 +464,8 @@ def test_client_full_prompt_on_sxpb_move_parsing(env, rendezqueue_server, tmp_pa
     )
 
     try:
-        time.sleep(3)
+        assert server_proc.stdout is not None
+        read_until(server_proc.stdout, "Server is live")
 
         x_key = f"{lobby_key}_X"
 
