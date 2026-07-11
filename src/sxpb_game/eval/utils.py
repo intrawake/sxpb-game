@@ -121,6 +121,10 @@ def get_player_by_identifier_sxpb(players, player_configs=None, visible_indices=
     return sxpb.dumps({"player_by_identifier": d}).strip()
 
 
+def get_question_sxpb(question: str) -> str:
+    return sxpb.dumps(sxpb.Mesg(question=question)).strip()
+
+
 def generate_prompt(game, player_idx: int, player_configs=None) -> str:
     """Generates the standard prompt for a given game and player."""
     players = game.get_player_identifiers()
@@ -140,7 +144,7 @@ def generate_prompt(game, player_idx: int, player_configs=None) -> str:
         else ""
     )
 
-    prompt_q = game.get_prompt(player_idx)
+    prompt_q = get_question_sxpb(game.get_prompt(player_idx))
     valid_moves = getattr(game, "get_valid_moves", lambda: [])()
     valid_str = ", ".join(valid_moves) if valid_moves else "Any valid move"
 
@@ -202,7 +206,7 @@ def generate_client_prompt(game, player_idx: int, player_configs=None) -> str:
         else ""
     )
 
-    prompt_q = game.get_prompt(player_idx)
+    prompt_q = get_question_sxpb(game.get_prompt(player_idx))
     valid_moves = getattr(game, "get_valid_moves", lambda: [])()
     valid_str = ", ".join(valid_moves) if valid_moves else "Any valid move"
 

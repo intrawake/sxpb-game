@@ -1,10 +1,12 @@
 import os
 import sys
 
+import sxpb
+
 # Ensure we can import from src
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from sxpb_game.eval.utils import generate_prompt
+from sxpb_game.eval.utils import generate_client_prompt, generate_prompt
 from sxpb_game.eval.logic import GameLogic
 
 
@@ -71,6 +73,16 @@ def test_persona_injection():
     )
 
     print("PASS: Persona is correctly injected and scoped.")
+
+
+def test_question_is_serialized_as_sxpb_message():
+    game = MockGame()
+    block_start = "### Question\n```sxpb < /dev/stdin\n"
+
+    for generate in (generate_prompt, generate_client_prompt):
+        prompt = generate(game, 0)
+        question_sxpb = prompt.split(block_start, 1)[1].split("\n```", 1)[0]
+        assert sxpb.loads(question_sxpb) == {"question": "What's your move?"}
 
 
 if __name__ == "__main__":
