@@ -162,8 +162,8 @@ class CodenamesLogic(GameLogic):
                 cur_line.append(h)
             if cur_line:
                 h_lines.append(" ".join(cur_line))
-            history_str = "\n  ".join(h_lines)
-            return f"((history)\n  {history_str}\n)"
+            history_str = "\n ".join(h_lines)
+            return f"((history)\n {history_str}\n)"
         else:
             return "((history))"
 

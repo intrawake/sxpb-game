@@ -9,27 +9,36 @@ license = {text = "0BSD"}
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
-    "sxpb @ git+https://github.com/sxproto/sxpb-py@04c9bbe867eaacf5bda92f4ee777e9f8fcb2992a",
-    "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@trunk",
-    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@276cee24a351673ca33df23c70b91e53c31af796",
+    "sxpb @ git+https://github.com/sxproto/sxpb-py@aa4e1e5830483c8ba0c549f78dce38b5be9a1885",
+    "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@78b8f7e6669a19bbb98650b41853607f9b04f251",
+    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@a67f6e211b95be10c7f4497b19a25d085e04dbac",
 ]
 requires-python = ">=3.10"
 
-[tool.pdm.dev-dependencies]
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[dependency-groups]
 dev = [
-    "httpx",
     "pytest",
     "pytest-asyncio",
     "ruff",
     "ty",
 ]
 
+[tool.ty.environment]
+root = ["src", "test", "."]
+
 [tool.pdm.scripts]
 check-format = "ruff check"
 check-type = "ty check"
-tidy = "ruff format"
-lint = {composite = ["check-format", "check-type"]}
-tidytest = {composite = ["test", "tidy", "lint"]}
+lint-sxpb = "sxpb-lint --ignore-file .gitignore"
+tidy-python = "ruff format"
+tidy-sxpb = "sxpb-tidy --ignore-file .gitignore"
+tidy = {composite = ["tidy-python", "tidy-sxpb"]}
+lint = {composite = ["check-format", "check-type", "lint-sxpb"]}
+tidytest = {composite = ["tidy", "lint", "test"]}
 test = "pytest -q"
 server = "python -m sxpb_game.harness.sxpb_game_main --model_by_name preset/model_by_name.sxpb"
 client = "python -m sxpb_game.harness.client"
@@ -39,10 +48,3 @@ benchmark-position = "python benchmark/position/eval.py --model_by_name preset/m
 [tool.pdm.scripts.fetch-wordle-words]
 shell = "mkdir -p ~/.local/share/wordle && curl -sSL -o ~/.local/share/wordle/words.txt https://gist.githubusercontent.com/dracos/dd0668f281e685bad51479e5acaadb93/raw/6bfa15d263d6d5b63840a8e5b64e04b382fdb079/valid-wordle-words.txt"
 help = "Fetch the Wordle word list to ~/.local/share/wordle/words.txt"
-
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
-
-[tool.ty.environment]
-root = ["src", "test", "."]

@@ -1,0 +1,9 @@
+(())
+--game mafia
+--openai_api_url http://atomman-0-host:11435/v1
+--shuffle_players 2,3,4,5,6,7
+--players preset/mafia_players.sxpb
+--postgame_on
+--log_sxpb /mnt/seaweed/tmp/mafiaX.sxpb
+--final_view_sxpb /mnt/seaweed/tmp/mafiaX_view.sxpb
+--verbose_log_jsonl /mnt/seaweed/tmp/mafiaX.jsonl
