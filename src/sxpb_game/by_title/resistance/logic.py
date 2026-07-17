@@ -57,8 +57,9 @@ class ResistanceLogic(GameLogic):
         spy_won = self.winner == "Spy"
         outcomes: dict[int, Outcome] = {}
         for i, team in enumerate(self.teams):
+            pidx = i + 1  # player indices are 1..num_players; 0 is GM
             is_spy = team == "Spy"
-            outcomes[i] = Outcome.WIN if is_spy == spy_won else Outcome.LOSS
+            outcomes[pidx] = Outcome.WIN if is_spy == spy_won else Outcome.LOSS
         return outcomes
 
     @property

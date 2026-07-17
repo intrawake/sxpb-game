@@ -166,11 +166,11 @@ def test_resistance_spy_win():
         "resistance spy win",
         g.get_player_outcomes(),
         {
-            0: Outcome.WIN,
-            1: Outcome.LOSS,
-            2: Outcome.WIN,
-            3: Outcome.LOSS,
+            1: Outcome.WIN,
+            2: Outcome.LOSS,
+            3: Outcome.WIN,
             4: Outcome.LOSS,
+            5: Outcome.LOSS,
         },
     )
 
@@ -185,11 +185,11 @@ def test_resistance_resistance_win():
         "resistance resistance win",
         g.get_player_outcomes(),
         {
-            0: Outcome.LOSS,
-            1: Outcome.WIN,
-            2: Outcome.LOSS,
-            3: Outcome.WIN,
+            1: Outcome.LOSS,
+            2: Outcome.WIN,
+            3: Outcome.LOSS,
             4: Outcome.WIN,
+            5: Outcome.WIN,
         },
     )
 
