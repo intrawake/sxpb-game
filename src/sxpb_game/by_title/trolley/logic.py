@@ -20,6 +20,9 @@ class TrolleyLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["p0", "p1", "p2", "p3"]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return [1, 2]
+
     def is_game_over(self) -> bool:
         return self.judge_decision is not None
 

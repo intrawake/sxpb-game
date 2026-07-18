@@ -82,13 +82,15 @@ def parse_report_matches(
                 raise ValueError(
                     f"report {report_index}: player {player_index} must be a message"
                 )
-            elo_name = _resolve_elo_name(player.get("model"), definitions, report_index)
             outcome = player.get("outcome")
+            if outcome == "na":
+                continue
             if not isinstance(outcome, str) or outcome not in OUTCOME_TO_SCORE:
                 raise ValueError(
                     f"report {report_index}: player {player_index} has unsupported "
                     f"outcome {outcome!r}"
                 )
+            elo_name = _resolve_elo_name(player.get("model"), definitions, report_index)
             if elo_name in player_results:
                 raise ValueError(
                     f"report {report_index}: multiple players resolve to ELO name "
@@ -96,6 +98,11 @@ def parse_report_matches(
                 )
             player_results[elo_name] = OUTCOME_TO_SCORE[outcome]
 
+        if len(player_results) < 2:
+            raise ValueError(
+                f"report {report_index}: must contain at least 2 outcome-bearing "
+                "model players"
+            )
         ordered_matches.append((timestamp, report_index, player_results))
 
     ordered_matches.sort(key=lambda item: (item[0], item[1]))

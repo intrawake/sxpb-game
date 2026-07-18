@@ -27,8 +27,11 @@ class OldMaidLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["GM", "Player1", "Player2"]
 
-    def get_visible_players(self, player_idx: int) -> List[int]:
+    def get_outcome_player_indices(self) -> List[int]:
         return [1, 2]
+
+    def get_visible_players(self, player_idx: int) -> List[int]:
+        return self.get_outcome_player_indices()
 
     @property
     def winner(self) -> Optional[str]:

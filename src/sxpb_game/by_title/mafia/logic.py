@@ -45,8 +45,11 @@ class MafiaLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["GM"] + [f"p{i + 1}" for i in range(self.num_players)]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return list(range(1, self.num_players + 1))
+
     def get_visible_players(self, player_idx: int) -> List[int]:
-        return [i for i in range(1, self.num_players + 1)]
+        return self.get_outcome_player_indices()
 
     @property
     def winner(self) -> Optional[str]:
@@ -60,8 +63,7 @@ class MafiaLogic(GameLogic):
             return {}
         mafia_won = self.result == "Mafia"
         outcomes: dict[int, Outcome] = {}
-        for i, role in enumerate(self.roles):
-            pidx = i + 1  # player indices are 1..num_players; 0 is GM
+        for pidx, role in zip(self.get_outcome_player_indices(), self.roles):
             is_mafia = role == "Mafia"
             outcomes[pidx] = Outcome.WIN if is_mafia == mafia_won else Outcome.LOSS
         return outcomes

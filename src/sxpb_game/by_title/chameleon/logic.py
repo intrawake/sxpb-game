@@ -29,8 +29,11 @@ class ChameleonLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["GM"] + [f"p{i + 1}" for i in range(self.num_players)]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return list(range(1, self.num_players + 1))
+
     def get_visible_players(self, player_idx: int) -> List[int]:
-        return [i for i in range(1, self.num_players + 1)]
+        return self.get_outcome_player_indices()
 
     def get_player_outcomes(self) -> dict[int, Outcome]:
         """Chameleon wins → chameleon WIN, players LOSS.  Vice versa."""
@@ -38,9 +41,8 @@ class ChameleonLogic(GameLogic):
             return {}
         cham_won = self.winner == "Chameleon"
         outcomes: dict[int, Outcome] = {}
-        for i in range(self.num_players):
-            pidx = i + 1  # 0 is GM
-            is_cham = i == self.chameleon_idx
+        for pidx in self.get_outcome_player_indices():
+            is_cham = pidx - 1 == self.chameleon_idx
             outcomes[pidx] = Outcome.WIN if is_cham == cham_won else Outcome.LOSS
         return outcomes
 

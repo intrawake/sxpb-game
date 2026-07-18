@@ -4,6 +4,7 @@ import random
 from typing import List, Optional, Tuple
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+import sxpb
 from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
 
@@ -44,11 +45,17 @@ class ResistanceLogic(GameLogic):
         self.result = None
         self.history = []
 
+    def _record_player_move(self, player_idx: int, move: str) -> None:
+        self.history.append(sxpb.dumps({f"p{player_idx}": move}))
+
     def get_player_identifiers(self) -> List[str]:
         return ["GM"] + [f"p{i + 1}" for i in range(self.num_players)]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return list(range(1, self.num_players + 1))
+
     def get_visible_players(self, player_idx: int) -> List[int]:
-        return [i for i in range(1, self.num_players + 1)]
+        return self.get_outcome_player_indices()
 
     def get_player_outcomes(self) -> dict[int, Outcome]:
         """Spy team wins → all Spies WIN, Resistance LOSS.  Vice versa."""
@@ -56,8 +63,7 @@ class ResistanceLogic(GameLogic):
             return {}
         spy_won = self.winner == "Spy"
         outcomes: dict[int, Outcome] = {}
-        for i, team in enumerate(self.teams):
-            pidx = i + 1  # player indices are 1..num_players; 0 is GM
+        for pidx, team in zip(self.get_outcome_player_indices(), self.teams):
             is_spy = team == "Spy"
             outcomes[pidx] = Outcome.WIN if is_spy == spy_won else Outcome.LOSS
         return outcomes
@@ -183,7 +189,7 @@ class ResistanceLogic(GameLogic):
         move_lower = move.lower()
 
         if self.phase == "DISCUSSION_REPLY":
-            self.history.append(f'(p{player_idx} "{move}")')
+            self._record_player_move(player_idx, move)
             self.phase = "DISCUSSION"
             return MoveResult(True, "")
 
@@ -209,11 +215,11 @@ class ResistanceLogic(GameLogic):
                 self.turn_question_asked = True
                 self.discussion_target = target_idx
                 self.phase = "DISCUSSION_REPLY"
-                self.history.append(f'(p{player_idx} "{move}")')
+                self._record_player_move(player_idx, move)
                 return MoveResult(True, "")
 
             # Normal discussion move
-            self.history.append(f'(p{player_idx} "{move}")')
+            self._record_player_move(player_idx, move)
             self.discussion_idx += 1
             self.turn_question_asked = False
 
@@ -264,7 +270,7 @@ class ResistanceLogic(GameLogic):
                         for i in range(self.num_players)
                     ]
                 )
-                self.history.append(f"((event squad_votes_revealed) (()) {votes_str})")
+                self.history.append(f"((event squad_votes_revealed) {votes_str})")
 
                 approves = list(self.squad_votes.values()).count("approve")
                 if approves > self.num_players / 2:
@@ -430,20 +436,24 @@ class ResistanceLogic(GameLogic):
         board += " )\n"
 
         board += " (player_by_identifier ()\n"
-        for i in range(self.num_players):
-            p_id = i + 1
+        for outcome_player_idx in self.get_outcome_player_indices():
+            team_idx = outcome_player_idx - 1
             show_team = False
 
-            if self.is_game_over() or player_idx == 0 or player_idx == p_id:
+            if (
+                self.is_game_over()
+                or player_idx == 0
+                or player_idx == outcome_player_idx
+            ):
                 show_team = True
             elif player_idx > 0 and self.teams and self.teams[player_idx - 1] == "Spy":
-                if self.teams[i] == "Spy":
+                if self.teams[team_idx] == "Spy":
                     show_team = True
 
             if show_team and self.teams:
-                board += f"  (p{p_id} (team {self.teams[i]}))\n"
+                board += f"  (p{outcome_player_idx} (team {self.teams[team_idx]}))\n"
             else:
-                board += f"  (p{p_id})\n"
+                board += f"  (p{outcome_player_idx})\n"
 
         board += " )\n"
         board += ")\n"

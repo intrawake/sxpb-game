@@ -38,6 +38,15 @@ def test_parse_rejects_malformed_sxpb():
         parse_report_matches("not sxpb", "tictactoe", DEFINITIONS)
 
 
+def test_parse_ignores_non_outcome_administrator():
+    report = _report("2026-07-11T01:00:00Z")
+    report["players"].insert(0, {"algorithm": "random", "outcome": "na"})
+
+    assert parse_report_matches(_input([report]), "tictactoe", DEFINITIONS) == [
+        {"provider/a": 1.0, "provider/b": 0.0}
+    ]
+
+
 def test_parse_resolves_aliases_and_sorts_by_timestamp():
     matches = parse_report_matches(
         _input(
@@ -61,7 +70,7 @@ def test_parse_resolves_aliases_and_sorts_by_timestamp():
     [
         (lambda report: report.update(game="connect_four"), "expected game"),
         (
-            lambda report: report["players"][0].update(outcome="na"),
+            lambda report: report["players"][0].update(outcome="pending"),
             "unsupported outcome",
         ),
         (
@@ -79,6 +88,14 @@ def test_parse_rejects_invalid_reports(mutate, message):
     mutate(report)
 
     with pytest.raises(ValueError, match=message):
+        parse_report_matches(_input([report]), "tictactoe", DEFINITIONS)
+
+
+def test_parse_rejects_fewer_than_two_outcome_players():
+    report = _report("2026-07-11T01:00:00Z")
+    report["players"][0] = {"algorithm": "random", "outcome": "na"}
+
+    with pytest.raises(ValueError, match="at least 2 outcome-bearing"):
         parse_report_matches(_input([report]), "tictactoe", DEFINITIONS)
 
 

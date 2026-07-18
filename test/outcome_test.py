@@ -10,11 +10,33 @@ from sxpb_game.by_title.mafia.logic import MafiaLogic
 from sxpb_game.by_title.resistance.logic import ResistanceLogic
 from sxpb_game.by_title.chameleon.logic import ChameleonLogic
 from sxpb_game.by_title.connect_four.logic import ConnectFourLogic
+from sxpb_game.by_title.cthulhu.logic import CthulhuLogic
+from sxpb_game.by_title.old_maid.logic import OldMaidLogic
+from sxpb_game.by_title.telephone.logic import TelephoneLogic
+from sxpb_game.by_title.trolley.logic import TrolleyLogic
 
 
 def _check(desc: str, outcomes, expected: dict[int, Outcome]):
     assert outcomes == expected, f"{desc}: got {outcomes!r}, expected {expected!r}"
     print(f"  PASS: {desc}")
+
+
+def test_default_outcome_player_indices_include_every_player():
+    g = TicTacToeLogic()
+    assert g.get_outcome_player_indices() == [0, 1]
+
+
+def test_administrative_games_declare_outcome_players():
+    assert ResistanceLogic(num_players=6).get_outcome_player_indices() == [
+        1,
+        2,
+        3,
+        4,
+        5,
+    ]
+    assert OldMaidLogic().get_outcome_player_indices() == [1, 2]
+    assert TelephoneLogic(num_players=4).get_outcome_player_indices() == [1, 2, 3]
+    assert TrolleyLogic().get_outcome_player_indices() == [1, 2]
 
 
 def test_default_single_winner():
@@ -96,6 +118,27 @@ def test_tictactoe_draw():
     )
 
 
+def test_trolley_outcomes_exclude_setup_and_judge():
+    g = TrolleyLogic()
+    g.judge_decision = "pull"
+    _check(
+        "trolley pull",
+        g.get_player_outcomes(),
+        {1: Outcome.WIN, 2: Outcome.LOSS},
+    )
+
+
+def test_old_maid_outcomes_exclude_dealer():
+    g = OldMaidLogic()
+    g.game_over = True
+    g.result = "Player2"
+    _check(
+        "old maid Player2 wins",
+        g.get_player_outcomes(),
+        {1: Outcome.LOSS, 2: Outcome.WIN},
+    )
+
+
 def test_connect_four_r_wins():
     """Connect Four: R wins → R gets WIN, Y gets LOSS."""
     g = ConnectFourLogic()
@@ -108,6 +151,23 @@ def test_connect_four_r_wins():
         "connect_four R wins",
         g.get_player_outcomes(),
         {0: Outcome.WIN, 1: Outcome.LOSS},
+    )
+
+
+def test_cthulhu_team_outcomes_exclude_administrator():
+    g = CthulhuLogic(num_players=5)
+    g.roles = ["Cultist", "Investigator", "Investigator", "Cultist"]
+    g.game_over = True
+    g.result = "Cultists"
+    _check(
+        "cthulhu cultists win",
+        g.get_player_outcomes(),
+        {
+            1: Outcome.WIN,
+            2: Outcome.LOSS,
+            3: Outcome.LOSS,
+            4: Outcome.WIN,
+        },
     )
 
 

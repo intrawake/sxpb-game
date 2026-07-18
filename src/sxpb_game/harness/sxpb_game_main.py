@@ -68,32 +68,56 @@ def shuffle_player_configs(player_configs, indices_str, randint_func=None):
         player_configs[i], player_configs[j] = player_configs[j], player_configs[i]
 
 
+def _validate_outcome_player_configs(
+    game: GameLogic,
+    player_configs: list,
+) -> list[int]:
+    """Validate and return the outcome-bearing player indices."""
+    indices = game.get_outcome_player_indices()
+    if any(not isinstance(i, int) or isinstance(i, bool) for i in indices):
+        raise ValueError("outcome player indices must be integers")
+    if len(set(indices)) != len(indices):
+        raise ValueError("outcome player indices must be unique")
+    invalid_indices = [i for i in indices if i < 0 or i >= len(player_configs)]
+    if invalid_indices:
+        raise ValueError(f"outcome player indices out of range: {invalid_indices}")
+    non_model_indices = [
+        i
+        for i in indices
+        if not isinstance(player_configs[i], dict) or "model" not in player_configs[i]
+    ]
+    if non_model_indices:
+        raise ValueError(
+            "outcome-bearing players must have models; "
+            f"non-model indices: {non_model_indices}"
+        )
+    return indices
+
+
 def _update_elo_if_configured(
     elo_file: str | None,
-    game,
-    elo_keys: list[str],
+    game: GameLogic,
+    elo_key_by_player_index: dict[int, str],
 ) -> None:
-    """Compute scores from *game* outcomes and update ELO ratings.
-
-    Called at game conclusion.  Does nothing if *elo_file* is unset or the
-    game didn't finish naturally (e.g. turn limit).
-
-    *elo_keys* must be in the same order as the game's player indices.
-    """
-    if not elo_file:
+    """Compute scores from a completed game's outcomes and update ELO."""
+    if not elo_file or not game.is_game_over():
         return
-    if not game.is_game_over():
-        return
+
+    outcomes = game.get_player_outcomes()
+    expected_indices = set(elo_key_by_player_index)
+    actual_indices = set(outcomes)
+    if actual_indices != expected_indices:
+        raise ValueError(
+            "completed outcome indices differ from get_outcome_player_indices(): "
+            f"expected {sorted(expected_indices)}, got {sorted(actual_indices)}"
+        )
 
     try:
         from sxpb_game.harness.elo import update_elo
 
-        outcomes = game.get_player_outcomes()
-        if not outcomes:
-            return
-
         player_elo_results = {
-            elo_keys[i]: OUTCOME_TO_SCORE[oc] for i, oc in outcomes.items()
+            elo_key_by_player_index[i]: OUTCOME_TO_SCORE[outcome]
+            for i, outcome in outcomes.items()
         }
         if len(player_elo_results) < len(outcomes):
             sys.stdout.write(
@@ -710,17 +734,24 @@ def main():
         )
         sys.exit(1)
 
+    elo_key_by_player_index: dict[int, str] = {}
     if args.elo_file:
-        non_model = []
-        for p, conf in zip(players, player_configs):
-            if not isinstance(conf, dict) or "model" not in conf:
-                non_model.append(p)
-        if non_model:
-            print(
-                f"Error: --elo_sxpb requires all players to have a model. "
-                f"Non-model players: {non_model}"
+        try:
+            outcome_player_indices = _validate_outcome_player_configs(
+                game, player_configs
             )
+        except ValueError as e:
+            print(f"Error: --elo_sxpb {e}")
             sys.exit(1)
+
+        for player_idx in outcome_player_indices:
+            conf = player_configs[player_idx]
+            model, _, _, _ = get_model_config(conf)
+            alias = conf.get("model", "")
+            elo_key = model
+            if alias and alias in definitions:
+                elo_key = definitions[alias].extra.get("elo_name", model)
+            elo_key_by_player_index[player_idx] = elo_key
 
     if external_players:
         print(
@@ -1204,17 +1235,9 @@ def main():
                         sys.stdout.flush()
 
                         # --- ELO update ---
-                        elo_keys: list[str] = []
-                        for conf in player_configs:
-                            model, _, _, _ = get_model_config(conf)
-                            alias = conf.get("model", "")
-                            elo_key = model
-                            if alias and alias in definitions:
-                                elo_key = definitions[alias].extra.get(
-                                    "elo_name", model
-                                )
-                            elo_keys.append(elo_key)
-                        _update_elo_if_configured(args.elo_file, game, elo_keys)
+                        _update_elo_if_configured(
+                            args.elo_file, game, elo_key_by_player_index
+                        )
 
                     all_received = True
                     for p in players:

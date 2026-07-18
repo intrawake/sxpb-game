@@ -23,6 +23,10 @@ class GameLogic:
         """Returns a list of valid player identifiers for the game."""
         raise NotImplementedError
 
+    def get_outcome_player_indices(self) -> List[int]:
+        """Return indices of players that receive win/draw/loss outcomes."""
+        return list(range(len(self.get_player_identifiers())))
+
     def get_visible_players(self, player_idx: int) -> List[int]:
         """Returns a list of player indices that are visible to the given player.
 
@@ -84,12 +88,16 @@ class GameLogic:
         """
         winner = getattr(self, "winner", None)
         pids = self.get_player_identifiers()
+        outcome_player_indices = self.get_outcome_player_indices()
         if winner == "Draw":
-            return {i: Outcome.DRAW for i in range(len(pids))}
+            return {i: Outcome.DRAW for i in outcome_player_indices}
         if isinstance(winner, str) and winner in pids:
-            wi = pids.index(winner)
+            winner_index = pids.index(winner)
+            if winner_index not in outcome_player_indices:
+                return {}
             return {
-                i: (Outcome.WIN if i == wi else Outcome.LOSS) for i in range(len(pids))
+                i: (Outcome.WIN if i == winner_index else Outcome.LOSS)
+                for i in outcome_player_indices
             }
         return {}
 

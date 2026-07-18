@@ -11,7 +11,7 @@ class SkullLogic(GameLogic):
     def __init__(self, num_players: int = 4):
         self.num_players = max(3, num_players - 1)
         self.game_over = False
-        self._winner = None
+        self.winner = None
         self.players: List[Dict[str, Any]] = [
             {
                 "status": "active",
@@ -49,8 +49,11 @@ class SkullLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["GM"] + [f"p{i + 1}" for i in range(self.num_players)]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return list(range(1, self.num_players + 1))
+
     def get_visible_players(self, player_idx: int) -> List[int]:
-        return [i for i in range(1, self.num_players + 1)]
+        return self.get_outcome_player_indices()
 
     def get_rules(self) -> str:
         return read_rulebook(__file__)
@@ -157,7 +160,7 @@ class SkullLogic(GameLogic):
                     self.history.append(f"(p{challenger_idx + 1}_eliminated)")
                     if self._active_players_count() == 1:
                         self.game_over = True
-                        self._winner = (
+                        self.winner = (
                             f"p{self._next_active_player(challenger_idx) + 1}"
                         )
                         return MoveResult(True, "")
@@ -191,7 +194,7 @@ class SkullLogic(GameLogic):
                 self.history.append(f"({p_name}_eliminated)")
                 if self._active_players_count() == 1:
                     self.game_over = True
-                    self._winner = f"p{self._next_active_player(p_idx) + 1}"
+                    self.winner = f"p{self._next_active_player(p_idx) + 1}"
                     return MoveResult(True, "")
 
             self._start_new_round(self._next_active_player(p_idx))
@@ -437,7 +440,7 @@ class SkullLogic(GameLogic):
                 self.players[challenger_idx]["score"] += 1
                 if self.players[challenger_idx]["score"] == 2:
                     self.game_over = True
-                    self._winner = f"p{challenger_idx + 1}"
+                    self.winner = f"p{challenger_idx + 1}"
                     return MoveResult(True, "")
 
                 self._start_new_round(challenger_idx)
@@ -503,7 +506,7 @@ class SkullLogic(GameLogic):
         board += " )\n)\n"
 
         if self.game_over:
-            board += f"\n(status GAME_OVER)\n(winner {self._winner})\n"
+            board += f"\n(status GAME_OVER)\n(winner {self.winner})\n"
         else:
             board += "\n(status PLAYING)\n"
 

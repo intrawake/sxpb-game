@@ -19,8 +19,11 @@ class TelephoneLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["Source", "Judge"] + [f"p{i}" for i in range(2, self.num_players)]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return list(range(1, self.num_players))
+
     def get_visible_players(self, player_idx: int) -> List[int]:
-        return [i for i in range(1, self.num_players)]
+        return self.get_outcome_player_indices()
 
     @property
     def winner(self) -> Optional[str]:
