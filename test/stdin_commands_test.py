@@ -12,9 +12,12 @@ sys.path.insert(
 from sxpb_game.harness import sxpb_game_main as server
 
 
-import warnings
-
-warnings.filterwarnings("ignore", message=".*Exception in thread.*")
+def make_server_thread():
+    return threading.Thread(
+        target=server.main,
+        kwargs={"exit_func": lambda code: None},
+        daemon=True,
+    )
 
 
 def test_retry_command_interrupts_call_api():
@@ -65,15 +68,9 @@ def test_retry_command_interrupts_call_api():
 
     mock_stdin = MockStdin()
 
-    def mock_exit(code):
-        # Do nothing. The thread will finish its execution path naturally or block
-        # on daemon tasks (like waiting for stdin), avoiding UnhandledThreadException.
-        pass
-
     with (
         patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
         patch("sys.stdin", mock_stdin),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -88,7 +85,7 @@ def test_retry_command_interrupts_call_api():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)
+        server_thread = make_server_thread()
         server_thread.start()
 
         assert first_call_started.wait(timeout=5.0)
@@ -100,7 +97,8 @@ def test_retry_command_interrupts_call_api():
         assert call_count >= 2
 
         mock_stdin.push("quit\n")
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()
 
 
 def test_view_prompt_history_commands():
@@ -137,9 +135,6 @@ def test_view_prompt_history_commands():
     mock_stdin = MockStdin()
     mock_stdout = io.StringIO()
 
-    def mock_exit(code):
-        pass
-
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
@@ -147,7 +142,6 @@ def test_view_prompt_history_commands():
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -162,7 +156,7 @@ def test_view_prompt_history_commands():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)
+        server_thread = make_server_thread()
         server_thread.start()
 
         mock_stdin.push("help\n")
@@ -173,7 +167,8 @@ def test_view_prompt_history_commands():
 
         output = wait_for_output(mock_stdout, "Exiting server...")
 
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()
 
         # Verify bits of expected output
         assert "Supported commands:" in output
@@ -217,9 +212,6 @@ def test_suspend_resume_commands():
     mock_stdin = MockStdin()
     mock_stdout = io.StringIO()
 
-    def mock_exit(code):
-        pass
-
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
@@ -227,7 +219,6 @@ def test_suspend_resume_commands():
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -242,11 +233,11 @@ def test_suspend_resume_commands():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)
+        mock_stdin.push("suspend\n")
+        server_thread = make_server_thread()
         server_thread.start()
 
         # Suspend immediately
-        mock_stdin.push("suspend\n")
 
         # Should see suspended message
         output = wait_for_output(
@@ -263,7 +254,8 @@ def test_suspend_resume_commands():
 
         mock_stdin.push("quit\n")
         wait_for_output(mock_stdout, "Exiting server...")
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()
 
 
 def test_say_command():
@@ -300,9 +292,6 @@ def test_say_command():
     mock_stdin = MockStdin()
     mock_stdout = io.StringIO()
 
-    def mock_exit(code):
-        pass
-
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
@@ -314,7 +303,6 @@ def test_say_command():
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -330,7 +318,7 @@ def test_say_command():
         ),
     ):
         mock_stdin.push("suspend 0 -1\n")
-        server_thread = threading.Thread(target=server.main, daemon=True)
+        server_thread = make_server_thread()
         server_thread.start()
 
         wait_for_output(mock_stdout, "Game is suspended for Player 0.")
@@ -356,7 +344,8 @@ def test_say_command():
 
         mock_stdin.push("quit\n")
         wait_for_output(mock_stdout, "Exiting server...")
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()
 
 
 def test_suspend_with_count_command():
@@ -393,9 +382,6 @@ def test_suspend_with_count_command():
     mock_stdin = MockStdin()
     mock_stdout = io.StringIO()
 
-    def mock_exit(code):
-        pass
-
     with (
         patch(
             "sxpb_game.harness.sxpb_game_main.call_api",
@@ -403,7 +389,6 @@ def test_suspend_with_count_command():
         ),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -418,11 +403,11 @@ def test_suspend_with_count_command():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)
+        mock_stdin.push("suspend 0 2\n")
+        server_thread = make_server_thread()
         server_thread.start()
 
         # Suspend player 0 for 2 moves
-        mock_stdin.push("suspend 0 2\n")
         wait_for_output(
             mock_stdout,
             "Game will suspend the next 2 times Player 0 is about to move.",
@@ -445,7 +430,8 @@ def test_suspend_with_count_command():
 
         mock_stdin.push("quit\n")
         output = wait_for_output(mock_stdout, "Exiting server...")
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()
         assert "Game will suspend the next 2 times Player 0 is about to move." in output
         assert "Suspension cleared for Player 0." in output
         assert "Game will suspend the next time Player 1 is about to move." in output
@@ -486,9 +472,6 @@ def test_resume_preserves_player_suspension():
     mock_stdin = MockStdin()
     mock_stdout = io.StringIO()
 
-    def mock_exit(code):
-        pass
-
     call_count = 0
 
     def mock_call_api(*args, **kwargs):
@@ -503,7 +486,6 @@ def test_resume_preserves_player_suspension():
         patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -521,7 +503,7 @@ def test_resume_preserves_player_suspension():
         # Push suspend before the thread even starts
         mock_stdin.push("suspend 0 2\n")
 
-        server_thread = threading.Thread(target=server.main, daemon=True)
+        server_thread = make_server_thread()
         server_thread.start()
 
         # It should log that it is suspended for P0
@@ -544,4 +526,5 @@ def test_resume_preserves_player_suspension():
 
         mock_stdin.push("quit\n")
         wait_for_output(mock_stdout, "Exiting server...")
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()

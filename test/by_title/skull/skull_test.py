@@ -30,7 +30,7 @@ def test_skull_full_game_random():
         move_count += 1
 
     assert logic.is_game_over(), "Game did not finish within 1000 moves."
-    assert logic._winner is not None
+    assert logic.winner is not None
 
 
 def test_skull_basic_flow():

@@ -175,7 +175,10 @@ def _write_report_sxpb(
         f.write(header + "\n" + view + "\n")
 
 
-def main():
+def main(exit_func=None):
+    if exit_func is None:
+        exit_func = os._exit
+
     argv = sys.argv[1:]
     new_argv = []
     i = 0
@@ -327,8 +330,25 @@ def main():
     game = logic_class(**init_kwargs)
     game_lock = threading.RLock()
     shutdown_event = threading.Event()
+    exit_requested = threading.Event()
+    managed_threads: set[threading.Thread] = set()
+    managed_threads_lock = threading.Lock()
     turns_taken = 0
     move_history = []
+
+    def start_daemon_thread(target):
+        def run():
+            try:
+                target()
+            finally:
+                with managed_threads_lock:
+                    managed_threads.discard(threading.current_thread())
+
+        thread = threading.Thread(target=run, daemon=True)
+        with managed_threads_lock:
+            managed_threads.add(thread)
+        thread.start()
+        return thread
 
     def get_model_config(conf):
         requested_model = conf.get("model", "gemini-flash-alt2")
@@ -405,10 +425,15 @@ def main():
             except Exception as e:
                 print(f"Failed to write verbose log: {e}")
 
-        os._exit(code)
+        exit_requested.set()
+        shutdown_event.set()
+        exit_func(code)
+
+    sigint_lock = threading.Lock()
 
     def handle_sigint(signum, frame):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        if not sigint_lock.acquire(blocking=False):
+            return
         sys.stdout.write("\nStopping server...\n")
         sys.stdout.flush()
         for c in player_clients.values():
@@ -449,6 +474,7 @@ def main():
                 sys.stdout.write("Exiting server...\n")
                 sys.stdout.flush()
                 write_logs_and_exit(0)
+                return
             elif line == "retry":
                 with game_lock:
                     if server_state["llm_thread"]:
@@ -546,9 +572,7 @@ def main():
                     if was_suspended:
                         sys.stdout.flush()
                         if not server_state["llm_thread"]:
-                            threading.Thread(
-                                target=process_automated_turn, daemon=True
-                            ).start()
+                            start_daemon_thread(process_automated_turn)
                     else:
                         sys.stdout.write("Game is not suspended.\n")
                         sys.stdout.flush()
@@ -638,9 +662,7 @@ def main():
 
                         if was_suspended:
                             if not server_state["llm_thread"]:
-                                threading.Thread(
-                                    target=process_automated_turn, daemon=True
-                                ).start()
+                                start_daemon_thread(process_automated_turn)
                     else:
                         sys.stdout.write(f"Invalid say move '{move_text}': {reason}\n")
                         sys.stdout.flush()
@@ -852,6 +874,8 @@ def main():
 
     def process_automated_turn():
         nonlocal turns_taken
+        if exit_requested.is_set():
+            return
         with game_lock:
             idx = game.get_current_player()
             is_suspended, is_player_suspended = check_suspension(idx)
@@ -891,7 +915,7 @@ def main():
                     turns_taken += 1
                     for p in players:
                         send_state_to_player(p)
-                    threading.Thread(target=process_automated_turn, daemon=True).start()
+                    start_daemon_thread(process_automated_turn)
                 else:
                     sys.stdout.write(
                         f"Invalid premove '{move}' for player {curr_player_id}.\n"
@@ -965,6 +989,8 @@ def main():
             messages = [{"role": "user", "content": prompt}]
             attempt = 0
             while attempt < args.retry_limit:
+                if exit_requested.is_set():
+                    return
                 with game_lock:
                     server_state["llm_thread"] = threading.get_ident()
 
@@ -1101,8 +1127,9 @@ def main():
             with game_lock:
                 server_state["llm_thread"] = threading.get_ident()
             try:
-                while True:
-                    time.sleep(0.5)
+                while not exit_requested.wait(0.5):
+                    pass
+                return
             except AbortRequestException:
                 with game_lock:
                     is_suspended, is_player_suspended = check_suspension(idx)
@@ -1122,7 +1149,7 @@ def main():
                 with game_lock:
                     server_state["llm_thread"] = None
 
-        threading.Thread(target=llm_worker, daemon=True).start()
+        start_daemon_thread(llm_worker)
 
     def create_on_data(player_id):
         def on_data(values):
@@ -1202,14 +1229,16 @@ def main():
         sys.stdout.write("Server is live. Waiting for players on private channels...\n")
         sys.stdout.flush()
         if args.interactive:
-            threading.Thread(target=stdin_listener, daemon=True).start()
+            start_daemon_thread(stdin_listener)
 
         process_automated_turn()
 
         conclusion_start = None
-        while True:
+        while not exit_requested.is_set():
             shutdown_event.wait(timeout=1.0)
             shutdown_event.clear()
+            if exit_requested.is_set():
+                break
 
             with game_lock:
                 is_over = game.is_game_over() or (
@@ -1258,6 +1287,9 @@ def main():
                         sys.stdout.write("Shutdown timeout reached. Exiting.\n")
                         sys.stdout.flush()
                         break
+
+        if exit_requested.is_set():
+            return
 
         def ask_llm_for_regrets():
             def regret_worker(idx, p_id, conf):
@@ -1428,6 +1460,24 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
 
     except KeyboardInterrupt:
         pass
+    finally:
+        exit_requested.set()
+        shutdown_event.set()
+        for c in player_clients.values():
+            c.stop()
+
+        deadline = time.monotonic() + 1.0
+        while time.monotonic() < deadline:
+            with managed_threads_lock:
+                threads = [
+                    thread
+                    for thread in managed_threads
+                    if thread is not threading.current_thread()
+                ]
+            if not threads:
+                break
+            for thread in threads:
+                thread.join(timeout=min(0.05, max(0.0, deadline - time.monotonic())))
 
 
 if __name__ == "__main__":

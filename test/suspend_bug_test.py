@@ -11,10 +11,6 @@ sys.path.insert(
 )
 from sxpb_game.harness import sxpb_game_main as server
 
-import warnings
-
-warnings.filterwarnings("ignore", message=".*Exception in thread.*")
-
 
 def test_say_command_resumed_players_bug():
     import io
@@ -50,9 +46,6 @@ def test_say_command_resumed_players_bug():
     mock_stdin = MockStdin()
     mock_stdout = io.StringIO()
 
-    def mock_exit(code):
-        pass
-
     call_count = 0
 
     def mock_call_api(*args, **kwargs):
@@ -64,14 +57,12 @@ def test_say_command_resumed_players_bug():
         # P0 second turn should be suspended! If it's not, it will call API and return a3.
         if call_count == 1:
             return '```sxpb >/dev/stdout\n(answer "a2")\n```', None, None
-        else:
-            return '```sxpb >/dev/stdout\n(answer "a3")\n```', None, None
+        return '```sxpb >/dev/stdout\n(answer "a3")\n```', None, None
 
     with (
         patch("sxpb_game.harness.sxpb_game_main.call_api", side_effect=mock_call_api),
         patch("sys.stdin", mock_stdin),
         patch("sys.stdout", mock_stdout),
-        patch("os._exit", side_effect=mock_exit),
         patch(
             "sys.argv",
             [
@@ -86,11 +77,16 @@ def test_say_command_resumed_players_bug():
             ],
         ),
     ):
-        server_thread = threading.Thread(target=server.main, daemon=True)
-        server_thread.start()
-
-        # Suspend player 0 for 99 moves
+        # Push suspend command BEFORE starting the server to avoid race:
+        # the game loop must see suspension before processing any turns.
         mock_stdin.push("suspend 0 99\n")
+
+        server_thread = threading.Thread(
+            target=server.main,
+            kwargs={"exit_func": lambda code: None},
+            daemon=True,
+        )
+        server_thread.start()
 
         output = wait_for_output(mock_stdout, "Game is suspended for Player 0.")
         assert (
@@ -117,4 +113,5 @@ def test_say_command_resumed_players_bug():
 
         mock_stdin.push("quit\n")
         wait_for_output(mock_stdout, "Exiting server...")
-        server_thread.join(timeout=0.1)
+        server_thread.join(timeout=2.0)
+        assert not server_thread.is_alive()

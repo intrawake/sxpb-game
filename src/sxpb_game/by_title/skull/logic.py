@@ -160,9 +160,7 @@ class SkullLogic(GameLogic):
                     self.history.append(f"(p{challenger_idx + 1}_eliminated)")
                     if self._active_players_count() == 1:
                         self.game_over = True
-                        self.winner = (
-                            f"p{self._next_active_player(challenger_idx) + 1}"
-                        )
+                        self.winner = f"p{self._next_active_player(challenger_idx) + 1}"
                         return MoveResult(True, "")
 
                 next_first = (
