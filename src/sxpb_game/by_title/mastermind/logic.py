@@ -22,6 +22,9 @@ class MastermindLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["0", "1"]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return [1]
+
     def get_visible_players(self, player_idx: int) -> List[int]:
         return [1]
 

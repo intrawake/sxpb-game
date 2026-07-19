@@ -72,7 +72,12 @@ def _validate_outcome_player_configs(
     game: GameLogic,
     player_configs: list,
 ) -> list[int]:
-    """Validate and return the outcome-bearing player indices."""
+    """Validate and return the outcome-bearing player indices.
+
+    Raises:
+        ValueError: If any outcome-bearing player lacks a model, or any
+            non-outcome-bearing player is not an algorithm (random).
+    """
     indices = game.get_outcome_player_indices()
     if any(not isinstance(i, int) or isinstance(i, bool) for i in indices):
         raise ValueError("outcome player indices must be integers")
@@ -91,6 +96,19 @@ def _validate_outcome_player_configs(
             "outcome-bearing players must have models; "
             f"non-model indices: {non_model_indices}"
         )
+
+    # Non-outcome-bearing players must be algorithm (random).
+    num_players = len(player_configs)
+    all_indices = set(range(num_players))
+    non_outcome_indices = sorted(all_indices - set(indices))
+    for i in non_outcome_indices:
+        conf = player_configs[i]
+        if not isinstance(conf, dict) or conf.get("algorithm") != "random":
+            raise ValueError(
+                f"non-outcome-bearing player at index {i} must be "
+                "algorithm random, but is not"
+            )
+
     return indices
 
 

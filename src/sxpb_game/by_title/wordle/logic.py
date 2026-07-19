@@ -21,6 +21,9 @@ class WordleLogic(GameLogic):
     def get_player_identifiers(self) -> List[str]:
         return ["0", "1"]
 
+    def get_outcome_player_indices(self) -> List[int]:
+        return [1]
+
     def is_game_over(self) -> bool:
         if self.target_word is None:
             return False

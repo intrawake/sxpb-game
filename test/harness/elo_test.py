@@ -63,6 +63,32 @@ def test_validate_outcome_players_rejects_algorithm_player():
         _validate_outcome_player_configs(game, configs)
 
 
+def test_validate_outcome_players_rejects_non_outcome_model_player():
+    """Non-outcome-bearing player with a model (not algorithm random) is rejected."""
+    game = OutcomeIndexGame([1, 2])
+    configs = [
+        {"model": "admin-model"},
+        {"model": "alpha"},
+        {"model": "beta"},
+    ]
+
+    with pytest.raises(ValueError, match="non-outcome-bearing player at index 0"):
+        _validate_outcome_player_configs(game, configs)
+
+
+def test_validate_outcome_players_rejects_non_outcome_unconfigured_player():
+    """Non-outcome-bearing player with no config at all is rejected."""
+    game = OutcomeIndexGame([1, 2])
+    configs = [
+        {},
+        {"model": "alpha"},
+        {"model": "beta"},
+    ]
+
+    with pytest.raises(ValueError, match="non-outcome-bearing player at index 0"):
+        _validate_outcome_player_configs(game, configs)
+
+
 @pytest.mark.parametrize("indices", [[1, 1], [-1, 2], [1, 3], [True, 2]])
 def test_validate_outcome_players_rejects_invalid_indices(indices: list[int]):
     game = OutcomeIndexGame(indices)
