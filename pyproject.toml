@@ -9,9 +9,9 @@ license = {text = "0BSD"}
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
-    "sxpb @ git+https://github.com/sxproto/sxpb-py@02bf7b5d5ab5be6e9756e6c0ec3d463fca2c62dd",
+    "sxpb @ git+https://github.com/sxproto/sxpb-py@3a84ab22bec2d10734f7eb6dba8ffce09eb1a650",
     "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@78b8f7e6669a19bbb98650b41853607f9b04f251",
-    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@070d6589f029dde9b3081fc512cb93dca9f3d001",
+    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@1c254da15395c6fbc9a5f0b2699eb01e946b05a7",
 ]
 requires-python = ">=3.10"
 

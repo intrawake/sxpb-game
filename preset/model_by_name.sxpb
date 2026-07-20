@@ -1,9 +1,5 @@
 ()
 
-(dono-gemini-lite
- (fullname aistudio/gemini-3.1-flash-lite-preview)
-)
-
 (dono-gemma
  (fullname aistudio/gemma-4-31b-it)
 )
@@ -14,12 +10,8 @@
 (dono-poolside-laguna-m1
  (fullname poolside/poolside/laguna-m.1)
 )
-(free-poolside-laguna-xs2-1
+(free-poolside-laguna-xs2.1
  (fullname poolside/poolside/laguna-xs-2.1)
-)
-
-(local-gemma3-27b
- (fullname llama.cpp/unsloth-gemma-3-27b-it:Q6_K)
 )
 
 (dono-gemma4-26a4b
@@ -36,8 +28,10 @@
  (fullname mistral/magistral-medium-latest)
 )
 
-(dono-mistral-medium
- (fullname mistral/mistral-medium-latest)
+(dono-mistral-medium-3.5
+ (fullname mistral/mistral-medium-3-5)
+ (reasoning_effort high)
+ (rating_alias mistral/mistral-medium-3.5,high-think)
 )
 (dono-mistral-large
  (fullname mistral/mistral-large-latest)
@@ -59,7 +53,4 @@
 
 (dono-gpt-oss-20b
  (fullname openrouter/openai/gpt-oss-20b:free)
-)
-(dono-gpt-oss-120b
- (fullname openrouter/openai/gpt-oss-120b:free)
 )

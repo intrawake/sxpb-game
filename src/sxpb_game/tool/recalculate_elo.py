@@ -32,15 +32,27 @@ def _parse_timestamp(value: object, report_index: int) -> datetime:
         ) from e
 
 
-def _resolve_elo_name(alias: object, definitions: dict, report_index: int) -> str:
+def _resolve_elo_name(player: object, definitions: dict, report_index: int) -> str:
+    if not isinstance(player, dict):
+        raise ValueError(f"report {report_index}: player must be a message")
+    alias = player.get("model")
     if not isinstance(alias, str) or not alias:
         raise ValueError(f"report {report_index}: player model must be a string")
+
+    # Report-level rating_alias takes precedence over definitions.
+    report_alias = player.get("rating_alias")
+    if isinstance(report_alias, str) and report_alias:
+        return report_alias
+
+    # Fall back to definitions lookup.
     model_config = definitions.get(alias)
     if model_config is None:
         raise ValueError(f"report {report_index}: unknown model alias {alias!r}")
-    elo_name = str(model_config.extra.get("elo_name", model_config.fullname))
+    elo_name = str(model_config.extra.get("rating_alias", model_config.fullname))
     if not elo_name:
-        raise ValueError(f"report {report_index}: empty ELO name for model {alias!r}")
+        raise ValueError(
+            f"report {report_index}: empty rating alias for model {alias!r}"
+        )
     return elo_name
 
 
@@ -90,7 +102,7 @@ def parse_report_matches(
                     f"report {report_index}: player {player_index} has unsupported "
                     f"outcome {outcome!r}"
                 )
-            elo_name = _resolve_elo_name(player.get("model"), definitions, report_index)
+            elo_name = _resolve_elo_name(player, definitions, report_index)
             if elo_name in player_results:
                 raise ValueError(
                     f"report {report_index}: multiple players resolve to ELO name "

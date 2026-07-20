@@ -14,6 +14,7 @@ import threading
 import time
 import typing
 from datetime import datetime, timezone
+from pathlib import Path
 
 # Ensure we can import from src and local modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src"))
@@ -33,6 +34,28 @@ from sxpb_game.eval.utils import (
     generate_prompt,
     get_player_by_identifier_sxpb,
 )
+
+
+def _load_rating_aliases(model_by_name_path: str) -> dict[str, str]:
+    """Load rating_alias overrides from a model_by_name.sxpb file.
+
+    Returns a dict mapping alias -> rating_alias string.
+    These are game-level metadata that must not reach the API payload.
+    """
+    try:
+        raw = sxpb.loads(Path(model_by_name_path).read_text())
+    except Exception:
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, str] = {}
+    for alias, entry in raw.items():
+        alias = str(alias)
+        if isinstance(entry, dict):
+            entry = dict(entry)
+            if "rating_alias" in entry:
+                result[alias] = str(entry["rating_alias"])
+    return result
 
 
 def format_sxpb_txt(s):
@@ -162,12 +185,17 @@ def _write_report_sxpb(
     game,
     players: list[str],
     player_configs: list[dict],
+    *,
+    elo_key_by_player_index: dict[int, str] | None = None,
 ) -> None:
     """Write a unified match report SxPB file.
 
     Format:
         (report ...)    — metadata message
         <view SxPB>     — existing render_player_full_sxpb(0) output
+
+    When *elo_key_by_player_index* is provided, each player entry
+    gets a ``(rating_alias ...)`` field matching the resolved ELO key.
     """
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     outcomes = game.get_player_outcomes()
@@ -178,6 +206,8 @@ def _write_report_sxpb(
         outcome = outcomes.get(i)
         conf["id"] = pid
         conf["outcome"] = outcome.value if outcome is not None else "na"
+        if elo_key_by_player_index and i in elo_key_by_player_index:
+            conf["rating_alias"] = elo_key_by_player_index[i]
         player_records.append(conf)
 
     report = {
@@ -322,6 +352,7 @@ def main(exit_func=None):
             shuffle_player_configs(player_configs, args.shuffle_players)
 
     definitions = load_model_definitions(args.model_by_name)
+    rating_aliases = _load_rating_aliases(args.model_by_name)
 
     try:
         try:
@@ -377,6 +408,8 @@ def main(exit_func=None):
             requested_model, definitions, reasoning_effort=reasoning_effort
         )
         api_kwargs = dict(mc.extra)
+        # Strip game-level metadata that must not reach the API.
+        api_kwargs.pop("rating_alias", None)
         if "temperature" in api_kwargs:
             api_kwargs["temperature"] = float(api_kwargs["temperature"])
         if mc.token_gen_limit != 16384:
@@ -790,7 +823,7 @@ def main(exit_func=None):
             alias = conf.get("model", "")
             elo_key = model
             if alias and alias in definitions:
-                elo_key = definitions[alias].extra.get("elo_name", model)
+                elo_key = rating_aliases.get(alias, model)
             elo_key_by_player_index[player_idx] = elo_key
 
     if external_players:
@@ -1418,6 +1451,7 @@ The game has concluded.{winner_str}{player_info_section}{rules_section}
                     game,
                     players,
                     player_configs,
+                    elo_key_by_player_index=elo_key_by_player_index or None,
                 )
             except Exception as e:
                 print(f"Failed to write report SxPB: {e}")

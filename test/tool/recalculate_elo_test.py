@@ -12,7 +12,7 @@ from sxpb_game.tool.recalculate_elo import main, parse_report_matches
 DEFINITIONS = {
     "model-a": SimpleNamespace(fullname="provider/a", extra={}),
     "model-b": SimpleNamespace(
-        fullname="provider/b-versioned", extra={"elo_name": "provider/b"}
+        fullname="provider/b-versioned", extra={"rating_alias": "provider/b"}
     ),
 }
 
@@ -45,6 +45,17 @@ def test_parse_ignores_non_outcome_administrator():
     assert parse_report_matches(_input([report]), "tictactoe", DEFINITIONS) == [
         {"provider/a": 1.0, "provider/b": 0.0}
     ]
+
+
+def test_parse_report_rating_alias_overrides_definitions():
+    """Report's rating_alias field should take precedence over definitions."""
+    report = _report("2026-07-11T01:00:00Z")
+    # Player model-a has no rating_alias in definitions (falls back to fullname "provider/a"),
+    # but the report overrides it.
+    report["players"][0]["rating_alias"] = "provider/a-no-think"
+
+    matches = parse_report_matches(_input([report]), "tictactoe", DEFINITIONS)
+    assert matches == [{"provider/a-no-think": 1.0, "provider/b": 0.0}]
 
 
 def test_parse_resolves_aliases_and_sorts_by_timestamp():
