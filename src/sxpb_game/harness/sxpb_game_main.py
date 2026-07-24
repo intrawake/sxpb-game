@@ -71,10 +71,17 @@ def format_sxpb_txt(s):
     return f'"""\\n{s}"""'
 
 
-def shuffle_player_configs(player_configs, indices_str, randint_func=None):
+def _shuffle_configs_at_indices(player_configs, valid_indices, randint_func=None):
+    """Fisher-Yates shuffle of *player_configs* at the given positions."""
     if randint_func is None:
         randint_func = random.randint
+    for n in range(len(valid_indices)):
+        i = valid_indices[n]
+        j = valid_indices[randint_func(0, n)]
+        player_configs[i], player_configs[j] = player_configs[j], player_configs[i]
 
+
+def shuffle_player_configs(player_configs, indices_str, randint_func=None):
     cleaned_str = re.sub(r"\D", " ", indices_str)
     valid_indices = []
     for x in cleaned_str.split():
@@ -85,10 +92,14 @@ def shuffle_player_configs(player_configs, indices_str, randint_func=None):
         if idx not in valid_indices:
             valid_indices.append(idx)
 
-    for n in range(len(valid_indices)):
-        i = valid_indices[n]
-        j = valid_indices[randint_func(0, n)]
-        player_configs[i], player_configs[j] = player_configs[j], player_configs[i]
+    _shuffle_configs_at_indices(player_configs, valid_indices, randint_func)
+
+
+def shuffle_outcome_player_configs(game, player_configs, randint_func=None):
+    """Shuffle exactly the outcome-bearing player configs in-place."""
+    indices = list(game.get_outcome_player_indices())
+    _shuffle_configs_at_indices(player_configs, indices, randint_func)
+    return indices
 
 
 def _validate_outcome_player_configs(
@@ -264,7 +275,14 @@ def main(exit_func=None):
     )
     parser.add_argument(
         "--shuffle_players",
-        help="Permissively formatted string of player indices to shuffle",
+        nargs="?",
+        const="outcome",
+        default=None,
+        help=(
+            "Shuffle player configs. With a value: permissively formatted "
+            "string of player indices to shuffle. Without a value: shuffle "
+            "exactly the outcome-bearing players (from the game logic)."
+        ),
     )
     parser.add_argument(
         "--turn_limit",
@@ -348,7 +366,7 @@ def main(exit_func=None):
             print("Error: --players must parse to a list (e.g. `(() (model qwen))`)")
             sys.exit(1)
 
-        if args.shuffle_players:
+        if args.shuffle_players and args.shuffle_players != "outcome":
             shuffle_player_configs(player_configs, args.shuffle_players)
 
     definitions = load_model_definitions(args.model_by_name)
@@ -412,7 +430,7 @@ def main(exit_func=None):
         api_kwargs.pop("rating_alias", None)
         if "temperature" in api_kwargs:
             api_kwargs["temperature"] = float(api_kwargs["temperature"])
-        if mc.token_gen_limit != 16384:
+        if mc.token_gen_limit is not None:
             api_kwargs["max_tokens"] = mc.token_gen_limit
         return mc.fullname, mc.reasoning_effort, mc.timeout, api_kwargs
 
@@ -793,6 +811,10 @@ def main(exit_func=None):
     players = game.get_player_identifiers()
     while len(player_configs) < len(players):
         player_configs.append({})
+
+    if args.shuffle_players == "outcome":
+        shuffled_indices = shuffle_outcome_player_configs(game, player_configs)
+        print(f"Shuffled outcome-bearing players at indices {shuffled_indices}")
 
     external_players = []
     for p, conf in zip(players, player_configs):

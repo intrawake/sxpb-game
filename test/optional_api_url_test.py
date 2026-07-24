@@ -16,7 +16,7 @@ def base_env():
 
 def test_server_external_requires_rendezqueue_url(base_env):
     # Two human players, no LLMs, no URL
-    players_sxpb = "(()) (())"
+    players_sxpb = "(()) () ()"
     cmd = [sys.executable, SERVER_PY, "--game", "tictactoe", "--players", players_sxpb]
 
     proc = subprocess.Popen(

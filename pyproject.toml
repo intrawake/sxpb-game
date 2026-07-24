@@ -9,9 +9,9 @@ license = {text = "0BSD"}
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
-    "sxpb @ git+https://github.com/sxproto/sxpb-py@3a84ab22bec2d10734f7eb6dba8ffce09eb1a650",
+    "sxpb @ git+https://github.com/sxproto/sxpb-py@539ea1b3fde70abe6c1c2f5188290e51a577d204",
     "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@78b8f7e6669a19bbb98650b41853607f9b04f251",
-    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@1c254da15395c6fbc9a5f0b2699eb01e946b05a7",
+    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@2e8e826f43f8e1720ecc8a49093fcb91757ff64e",
 ]
 requires-python = ">=3.10"
 
@@ -23,8 +23,8 @@ build-backend = "pdm.backend"
 dev = [
     "pytest",
     "pytest-asyncio",
-    "ruff",
-    "ty",
+    "ruff==0.15.22",
+    "ty==0.0.64",
 ]
 
 [tool.ty.environment]
