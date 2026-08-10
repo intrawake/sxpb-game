@@ -32,9 +32,62 @@ def _expected_score(ra: float, rb: float) -> float:
     return 1.0 / (1.0 + 10.0 ** ((rb - ra) / SPREAD))
 
 
-def _new_rating(rating: float, expected: float, actual: float, k: float) -> int:
-    """Return new ELO rating (rounded to nearest integer)."""
-    return round(rating + k * (actual - expected))
+def _expected_avg(
+    ratings: Mapping[str, tuple[int, int]],
+    players: list[str],
+    i: int,
+) -> float:
+    """Average expected score of player *i* against every other player."""
+    old_rating, _ = ratings.get(players[i], (DEFAULT_RATING, 0))
+    opponent_count = len(players) - 1
+    if opponent_count <= 0:
+        return 0.5
+    total = 0.0
+    for j, opp in enumerate(players):
+        if i == j:
+            continue
+        opp_rating, _ = ratings.get(opp, (DEFAULT_RATING, 0))
+        total += _expected_score(old_rating, opp_rating)
+    return total / opponent_count
+
+
+def _pairwise_adjustments(
+    ratings: Mapping[str, tuple[int, int]],
+    players: list[str],
+    scores: list[float],
+) -> list[float]:
+    """Per-player pre-K rating adjustments for a pure win/loss team game.
+
+    Winner i:  (1/(n-1)) · Σ_{j ∈ losers} (1 - E(i,j))     [≥ 0]
+    Loser  i:  -(1/(n-1)) · Σ_{j ∈ winners} E(i,j)         [≤ 0]
+
+    Same-team pairs contribute nothing.  This is the pairwise formula
+    proven in ``demo-lean4/elo-validity/Pairwise.lean``: winners never
+    lose, losers never gain, and the table stays zero-sum (per cross pair,
+    the winner's gain and loser's loss cancel by reciprocity).  The
+    1/(n-1) scale makes 1v1 exactly standard Elo and bounds every
+    per-player delta by the K-factor.
+    """
+    n = len(players)
+    winners = [i for i, s in enumerate(scores) if s == 1.0]
+    losers = [i for i, s in enumerate(scores) if s == 0.0]
+    scale = 1.0 / (n - 1)
+    adjustments = [0.0] * n
+    for i in winners:
+        ri, _ = ratings.get(players[i], (DEFAULT_RATING, 0))
+        total = sum(
+            1.0 - _expected_score(ri, ratings.get(players[j], (DEFAULT_RATING, 0))[0])
+            for j in losers
+        )
+        adjustments[i] = scale * total
+    for i in losers:
+        ri, _ = ratings.get(players[i], (DEFAULT_RATING, 0))
+        total = sum(
+            _expected_score(ri, ratings.get(players[j], (DEFAULT_RATING, 0))[0])
+            for j in winners
+        )
+        adjustments[i] = -scale * total
+    return adjustments
 
 
 def read_elo(path: str | Path) -> dict[str, tuple[int, int]]:
@@ -67,42 +120,6 @@ def read_elo(path: str | Path) -> dict[str, tuple[int, int]]:
     return result
 
 
-def _normalize_scores(
-    scores: list[float],
-) -> list[float]:
-    """Normalize actual scores so sum equals n/2 (zero-sum property).
-
-    For win/loss games (scores are 1.0 or 0.0):
-      winners get ``n / (2*w)`` instead of ``1.0``
-      losers stay ``0.0``
-
-    For draws (all 0.5): already sums to n/2, no change.
-
-    For 1v1 (w = n/2 = 1): n/(2*1) = 1, no effective change.
-    """
-    n = len(scores)
-
-    # Detect game type.
-    winners = sum(1 for s in scores if s == 1.0)
-    drawers = sum(1 for s in scores if s == 0.5)
-    losers = sum(1 for s in scores if s == 0.0)
-
-    # All-draw: already zero-sum.
-    if drawers == n:
-        return scores[:]
-
-    # Mixed outcomes or partial draws: only normalize win/loss portion.
-    # If any drawers exist, we only normalize the win/loss players.
-    # But for simplicity, if it's a pure win/loss game (no draws):
-    if drawers == 0 and winners + losers == n and winners >= 1:
-        factor = n / (2.0 * winners)
-        return [s * factor if s == 1.0 else s for s in scores]
-
-    # Partial draw (some drew, others won/lost): don't normalize.
-    # This is a rare edge case not used in current games.
-    return scores[:]
-
-
 def apply_elo(
     ratings: Mapping[str, tuple[int, int]],
     player_results: Mapping[str, float],
@@ -116,32 +133,36 @@ def apply_elo(
     """Apply one completed match to an in-memory rating state.
 
     Returns ``(new_ratings, deltas)`` without mutating *ratings*.
+
+    Pure win/loss games use the pairwise formula (winners never lose;
+    ``demo-lean4/elo-validity/Pairwise.lean``); games involving draws keep
+    the opponent-averaging behavior.
     """
     players = list(player_results)
-    raw_scores = list(player_results.values())
-    scores = _normalize_scores(raw_scores)
+    scores = list(player_results.values())
     n = len(players)
+    winners = sum(1 for s in scores if s == 1.0)
+    drawers = sum(1 for s in scores if s == 0.5)
+    pure_win_loss = drawers == 0 and 0 < winners < n
+    adjustments = (
+        _pairwise_adjustments(ratings, players, scores) if pure_win_loss else None
+    )
 
     results: dict[str, tuple[int, int, int, int]] = {}
     new_ratings = dict(ratings)
 
     for i, name in enumerate(players):
         old_rating, count = ratings.get(name, (DEFAULT_RATING, 0))
-
-        expected_total = 0.0
-        opponent_count = 0
-        for j in range(n):
-            if i == j:
-                continue
-            opp_rating, _ = ratings.get(players[j], (DEFAULT_RATING, 0))
-            expected_total += _expected_score(old_rating, opp_rating)
-            opponent_count += 1
-
-        expected = expected_total / opponent_count if opponent_count > 0 else 0.5
-        actual = scores[i]
         k = k_new if count < 10 else k_established
 
-        new_rating = _new_rating(old_rating, expected, actual, k)
+        if pure_win_loss:
+            assert adjustments is not None
+            delta = k * adjustments[i]
+        else:
+            expected = _expected_avg(ratings, players, i)
+            delta = k * (scores[i] - expected)
+
+        new_rating = round(old_rating + delta)
         new_count = count + 1
         new_ratings[name] = (new_rating, new_count)
         results[name] = (old_rating, new_rating, new_rating - old_rating, new_count)
@@ -177,15 +198,14 @@ def update_elo(
     """Update ELO ratings for a completed game and write back to disk."""
     path = Path(path)
     ratings = read_elo(path)
-    raw_scores = list(player_results.values())
-    scores = _normalize_scores(raw_scores)
+    scores = list(player_results.values())
+    winners = sum(1 for score in scores if score == 1.0)
+    drawers = sum(1 for score in scores if score == 0.5)
 
-    if scores != raw_scores:
-        winners = sum(1 for score in raw_scores if score == 1.0)
-        factor = len(raw_scores) / (2.0 * winners) if winners >= 1 else 1.0
+    if drawers == 0 and 0 < winners < len(scores):
         sys.stdout.write(
-            f"ELO: team game (n={len(raw_scores)}, w={winners}), "
-            f"winner score normalized to {factor:.3f}\n"
+            f"ELO: team game (n={len(scores)}, w={winners}), "
+            "pairwise deltas (winners never lose)\n"
         )
 
     new_ratings, results = apply_elo(
