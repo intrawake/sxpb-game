@@ -1,3 +1,5 @@
+import sxpb
+
 from sxpb_game.by_title.mafia.logic import MafiaLogic
 
 
@@ -50,21 +52,39 @@ def test_mafia_logic():
 
     # Check history filtering
     h_villager = game.render_player_history(2)
-    assert 'p1 "Let\'s kill p5"' not in h_villager
+    v_vals = [
+        v
+        for item in sxpb.loads(h_villager)["history"]
+        if isinstance(item, dict)
+        for v in item.values()
+    ]
+    assert "Let's kill p5" not in v_vals
     assert "; Mafia" not in h_villager
     assert "Mafia_kill_decision" not in h_villager
     assert "; Doctor" not in h_villager
     assert "; Detective" not in h_villager
 
     h_mafia = game.render_player_history(1)
-    assert '(p1 "Let\'s kill p5")' in h_mafia
-    assert '(p1 "kill p5")' in h_mafia
+    m_vals = [
+        v
+        for item in sxpb.loads(h_mafia)["history"]
+        if isinstance(item, dict)
+        for v in item.values()
+    ]
+    assert "Let's kill p5" in m_vals
+    assert "kill p5" in m_vals
     assert "((event mafia_kill_decision) p5)" in h_mafia
     assert "; Doctor" not in h_mafia
 
     h_det = game.render_player_history(4)
-    assert 'p1 "Let\'s kill p5"' not in h_det
-    assert '(p4 "investigate p1")  ; Detective result Mafia' in h_det
+    d_vals = [
+        v
+        for item in sxpb.loads(h_det)["history"]
+        if isinstance(item, dict)
+        for v in item.values()
+    ]
+    assert "Let's kill p5" not in d_vals
+    assert "(p4 investigate p1)  ; Detective result Mafia" in h_det
     assert "; Mafia" not in h_det
     assert "Mafia_kill_decision" not in h_det
 

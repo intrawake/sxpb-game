@@ -3,6 +3,8 @@ import sys
 import random
 from typing import List, Optional, Tuple
 
+import sxpb
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
@@ -298,7 +300,7 @@ class MafiaLogic(GameLogic):
         p_str = f"p{player_idx}"
 
         if self.phase == "NIGHT_MAFIA_DISCUSSION":
-            self.history.append(f'({p_str} "{move}")  ; private')
+            self.history.append(sxpb.dumps({p_str: move}) + "  ; private")
             self.mafia_discussion_turns += 1
 
             mafia_count = sum(
@@ -330,7 +332,9 @@ class MafiaLogic(GameLogic):
                 return MoveResult(False, "")
 
             self.night_votes[p_idx] = t_idx
-            self.history.append(f'(p{player_idx} "kill p{t_idx + 1}")  ; Mafia')
+            self.history.append(
+                sxpb.dumps({f"p{player_idx}": f"kill p{t_idx + 1}"}) + "  ; Mafia"
+            )
 
             mafia_count = sum(
                 1 for a, r in zip(self.alive, self.roles) if a and r == "Mafia"
@@ -398,7 +402,9 @@ class MafiaLogic(GameLogic):
 
                 self.doctor_save_target = t_idx
                 self.last_saved_player = t_idx
-                self.history.append(f'({p_str} "save p{t_idx + 1}")  ; private')
+                self.history.append(
+                    sxpb.dumps({p_str: f"save p{t_idx + 1}"}) + "  ; private"
+                )
 
                 det_exists = any(
                     r == "Detective" and a for r, a in zip(self.roles, self.alive)
@@ -428,7 +434,9 @@ class MafiaLogic(GameLogic):
 
                         self.doctor_save_target = t_idx
                         self.last_saved_player = t_idx
-                        self.history.append(f'({p_str} "save p{t_idx + 1}")  ; private')
+                        self.history.append(
+                            sxpb.dumps({p_str: f"save p{t_idx + 1}"}) + "  ; private"
+                        )
                         det_exists = any(
                             r == "Detective" and a
                             for r, a in zip(self.roles, self.alive)
@@ -462,7 +470,8 @@ class MafiaLogic(GameLogic):
                 is_mafia = self.roles[t_idx] == "Mafia"
                 result = "Mafia" if is_mafia else "Not_Mafia"
                 self.history.append(
-                    f'(p{player_idx} "investigate p{t_idx + 1}")  ; Detective result {result}'
+                    sxpb.dumps({f"p{player_idx}": f"investigate p{t_idx + 1}"})
+                    + f"  ; Detective result {result}"
                 )
 
                 vig_exists = any(
@@ -483,7 +492,8 @@ class MafiaLogic(GameLogic):
                         is_mafia = self.roles[t_idx] == "Mafia"
                         result = "Mafia" if is_mafia else "Not_Mafia"
                         self.history.append(
-                            f'({p_str} "investigate p{t_idx + 1}")  ; Detective result {result}'
+                            sxpb.dumps({p_str: f"investigate p{t_idx + 1}"})
+                            + f"  ; Detective result {result}"
                         )
                         vig_exists = any(
                             r == "Vigilante" and a
@@ -499,7 +509,7 @@ class MafiaLogic(GameLogic):
 
         if self.phase == "NIGHT_VIGILANTE":
             if parts[0].lower() == "skip":
-                self.history.append(f'({p_str} "skip")  ; private')
+                self.history.append(sxpb.dumps({p_str: "skip"}) + "  ; private")
                 self._resolve_night()
                 return MoveResult(True, "")
             if parts[0].lower() == "shoot" and len(parts) >= 2:
@@ -515,7 +525,9 @@ class MafiaLogic(GameLogic):
 
                 self.vigilante_target = t_idx
                 self.vigilante_has_shot = True
-                self.history.append(f'({p_str} "shoot p{t_idx + 1}")  ; private')
+                self.history.append(
+                    sxpb.dumps({p_str: f"shoot p{t_idx + 1}"}) + "  ; private"
+                )
                 self._resolve_night()
                 return MoveResult(True, "")
 
@@ -528,7 +540,7 @@ class MafiaLogic(GameLogic):
                         self.vigilante_target = t_idx
                         self.vigilante_has_shot = True
                         self.history.append(
-                            f'({p_str} "shoot p{t_idx + 1}")  ; private'
+                            sxpb.dumps({p_str: f"shoot p{t_idx + 1}"}) + "  ; private"
                         )
                         self._resolve_night()
                         return MoveResult(True, "")
@@ -536,7 +548,7 @@ class MafiaLogic(GameLogic):
                     pass
 
         if self.phase == "DAY_DISCUSSION_REPLY":
-            self.history.append(f'({p_str} "{move}")')
+            self.history.append(sxpb.dumps({p_str: move}))
             self.phase = "DAY_DISCUSSION"
             return MoveResult(True, "")
 
@@ -570,11 +582,11 @@ class MafiaLogic(GameLogic):
                 self.turn_question_asked = True
                 self.discussion_target = target_idx
                 self.phase = "DAY_DISCUSSION_REPLY"
-                self.history.append(f'({p_str} "{move}")')
+                self.history.append(sxpb.dumps({p_str: move}))
                 return MoveResult(True, "")
 
             # Normal discussion move
-            self.history.append(f'({p_str} "{move}")')
+            self.history.append(sxpb.dumps({p_str: move}))
             self.discussion_idx += 1
             self.turn_question_asked = False
 
@@ -594,7 +606,7 @@ class MafiaLogic(GameLogic):
                 target_str = parts[1]
                 if target_str.lower() == "none":
                     self.day_votes[p_idx] = None
-                    self.history.append(f'({p_str} "vote none")')
+                    self.history.append(sxpb.dumps({p_str: "vote none"}))
                 else:
                     if not target_str.startswith("p"):
                         return MoveResult(False, "")
@@ -606,7 +618,7 @@ class MafiaLogic(GameLogic):
                         return MoveResult(False, "")
 
                     self.day_votes[p_idx] = t_idx
-                    self.history.append(f'({p_str} "vote p{t_idx + 1}")')
+                    self.history.append(sxpb.dumps({p_str: f"vote p{t_idx + 1}"}))
 
                 self.vote_idx += 1
 

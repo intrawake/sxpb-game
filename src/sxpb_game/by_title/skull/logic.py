@@ -3,6 +3,8 @@ import sys
 import random
 from typing import Any, Dict, List, Optional, Tuple
 
+import sxpb
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
@@ -38,13 +40,13 @@ class SkullLogic(GameLogic):
         self.history: List[str] = []
 
     def _record_move(self, p_name: str, raw_move: str):
-        escaped = raw_move.replace('"', '\\"')
-        lower_move = escaped.lower()
+        move = raw_move
+        lower_move = move.lower()
         if lower_move.startswith("play rose"):
-            escaped = "play [redacted]" + escaped[9:]
+            move = "play [redacted]" + move[9:]
         elif lower_move.startswith("play skull"):
-            escaped = "play [redacted]" + escaped[10:]
-        self.history.append(f'({p_name} "{escaped}")')
+            move = "play [redacted]" + move[10:]
+        self.history.append(sxpb.dumps({p_name: move}))
 
     def get_player_identifiers(self) -> List[str]:
         return ["GM"] + [f"p{i + 1}" for i in range(self.num_players)]
@@ -367,7 +369,7 @@ class SkullLogic(GameLogic):
                 target_stack[idx] = ("flipped", disc)
 
                 self._record_move(p_name, move)
-                self.history.append(f"(disc {disc.capitalize()})")
+                self.history.append(sxpb.dumps({"disc": disc.capitalize()}))
 
                 return self._resolve_flip(p_idx, t_idx, disc)
 
@@ -392,8 +394,8 @@ class SkullLogic(GameLogic):
         for i in reversed(unflipped_indices):
             disc = stack[i]
             stack[i] = ("flipped", disc)
-            self.history.append(f'({p_name} "flip my stack")')
-            self.history.append(f"(disc {disc.capitalize()})")
+            self.history.append(sxpb.dumps({p_name: "flip my stack"}))
+            self.history.append(sxpb.dumps({"disc": disc.capitalize()}))
 
             self._resolve_flip(p_idx, p_idx, disc)
             if self.phase != "CHALLENGE_FLIP" or self.game_over:
@@ -410,8 +412,8 @@ class SkullLogic(GameLogic):
                 for i in reversed(unflipped):
                     disc = target_stack[i]
                     target_stack[i] = ("flipped", disc)
-                    self.history.append(f'({p_name} "flip p{target_idx + 1}")')
-                    self.history.append(f"(disc {disc.capitalize()})")
+                    self.history.append(sxpb.dumps({p_name: f"flip p{target_idx + 1}"}))
+                    self.history.append(sxpb.dumps({"disc": disc.capitalize()}))
 
                     self._resolve_flip(p_idx, target_idx, disc)
                     if self.phase != "CHALLENGE_FLIP" or self.game_over:

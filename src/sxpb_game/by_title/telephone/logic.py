@@ -1,5 +1,9 @@
 import random
 from typing import List, Optional, Tuple
+
+import sxpb
+from sxpb.types import SxpbLone, SxpbMesg
+
 from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
 
@@ -81,7 +85,11 @@ class TelephoneLogic(GameLogic):
                 if len(parts) < 2:
                     return MoveResult(False, "Format: quirk <description>")
                 self.quirks[player_idx] = parts[1]
-                self.history.append(f'(quirk p{player_idx} "{parts[1]}")')
+                self.history.append(
+                    sxpb.dumps(
+                        SxpbMesg({"quirk": SxpbLone({f"p{player_idx}": parts[1]})})
+                    )
+                )
                 self.current_quirk_idx += 1
                 if self.current_quirk_idx >= self.num_players:
                     self.phase = "CHOOSE_MESSAGE"
@@ -90,14 +98,14 @@ class TelephoneLogic(GameLogic):
 
         if self.phase == "CHOOSE_MESSAGE":
             self.messages[0] = move
-            self.history.append(f'(p0 "{move}")')
+            self.history.append(sxpb.dumps({"p0": move}))
             self.current_player_idx = 1
             self.phase = "PASS_MESSAGE"
             return MoveResult(True, "")
 
         if self.phase == "PASS_MESSAGE":
             self.messages[self.current_player_idx] = move
-            self.history.append(f'(p{self.current_player_idx} "{move}")')
+            self.history.append(sxpb.dumps({f"p{self.current_player_idx}": move}))
             self.current_player_idx += 1
             if self.current_player_idx >= self.num_players:
                 self.phase = "JUDGE"
@@ -106,7 +114,7 @@ class TelephoneLogic(GameLogic):
         if self.phase == "JUDGE":
             if not move.lower().startswith("winner p"):
                 return MoveResult(False, "Format: winner pN <reason>")
-            self.history.append(f'(judge_verdict "{move}")')
+            self.history.append(sxpb.dumps({"judge_verdict": move}))
             self.game_over = True
             parts = move.split(maxsplit=2)
             if len(parts) >= 2 and parts[1].lower().startswith("p"):

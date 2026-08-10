@@ -3,6 +3,8 @@ import os
 import random
 from typing import List, Optional
 
+import sxpb
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 from sxpb_game.eval.logic import GameLogic, MoveResult
 
@@ -91,7 +93,9 @@ class CodenamesLogic(GameLogic):
 
             # Switch to corresponding operative
             self.guesses_left = clue_num + 1
-            self.history.append(f'(p{player_idx} "{clue_word} {clue_num}")')
+            self.history.append(
+                sxpb.dumps({f"p{player_idx}": f"{clue_word} {clue_num}"})
+            )
             self.current_player_idx = 3 if player_idx == 1 else 4
             return MoveResult(True, "")
 
@@ -106,7 +110,7 @@ class CodenamesLogic(GameLogic):
             move = move.split()[0] if move else ""
 
             if move == ".":
-                self.history.append(f'(p{player_idx} ".")')
+                self.history.append(sxpb.dumps({f"p{player_idx}": move}))
                 self.current_player_idx = next_spymaster_idx
                 return MoveResult(True, "")
 
@@ -116,11 +120,8 @@ class CodenamesLogic(GameLogic):
             self.revealed.add(move)
             color = self.word_colors[move]
 
-            if " " in move:
-                self.history.append(f'(p{player_idx} "{move}")')
-            else:
-                self.history.append(f"(p{player_idx} {move})")
-            self.history.append(f"(reveal {color})")
+            self.history.append(sxpb.dumps({f"p{player_idx}": move}))
+            self.history.append(sxpb.dumps({"reveal": color}))
 
             if color == "assassin":
                 self.winner = other_team

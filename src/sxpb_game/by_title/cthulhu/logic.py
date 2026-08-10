@@ -3,6 +3,8 @@ import sys
 import random
 from typing import List, Optional, Tuple
 
+import sxpb
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
@@ -138,7 +140,7 @@ class CthulhuLogic(GameLogic):
                 self.turn_direct_questions = 0
                 self.round_group_question_asked = False
                 self.history.append("((event deal_cards))")
-                self.history.append(f"(round {self.round_number})")
+                self.history.append(sxpb.dumps({"round": self.round_number}))
                 return MoveResult(True, "")
 
         if player_idx > 0:
@@ -146,12 +148,12 @@ class CthulhuLogic(GameLogic):
             p_str = f"p{player_idx}"
 
             if self.phase == "REPLY":
-                self.history.append(f'({p_str} "{move}")')
+                self.history.append(sxpb.dumps({p_str: move}))
                 self.phase = "PLAY"
                 return MoveResult(True, "")
 
             if self.phase == "GROUP_REPLY":
-                self.history.append(f'({p_str} "{move}")')
+                self.history.append(sxpb.dumps({p_str: move}))
                 if self.reply_queue:
                     self.reply_queue.pop(0)
                 if not self.reply_queue:
@@ -171,7 +173,7 @@ class CthulhuLogic(GameLogic):
                         for i in range(1, self.num_players)
                     ]
                     self.phase = "GROUP_REPLY"
-                    self.history.append(f'({p_str} "{move}")')
+                    self.history.append(sxpb.dumps({p_str: move}))
                     return MoveResult(True, "")
 
                 parts = move.split(maxsplit=2)
@@ -213,7 +215,7 @@ class CthulhuLogic(GameLogic):
                     self.turn_direct_questions += 1
                     self.target_player = target_idx
                     self.phase = "REPLY"
-                    self.history.append(f'({p_str} "{move}")')
+                    self.history.append(sxpb.dumps({p_str: move}))
                     return MoveResult(True, "")
 
                 # Handling Reveal: `p2!`
@@ -245,8 +247,8 @@ class CthulhuLogic(GameLogic):
                 card_idx = 0  # Randomize by just taking the first one
                 drawn = self.hands[target_idx].pop(card_idx)
 
-                self.history.append(f'({p_str} "{move}")')
-                self.history.append(f"(reveal p{target_p_id} {drawn})")
+                self.history.append(sxpb.dumps({p_str: move}))
+                self.history.append(sxpb.dumps({"reveal": f"p{target_p_id} {drawn}"}))
 
                 self.turn = target_idx
                 self.reveals_this_round += 1

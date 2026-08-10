@@ -3,6 +3,8 @@ import sys
 import random
 from typing import List, Optional, Tuple
 
+import sxpb
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 from sxpb_game.eval.logic import GameLogic, MoveResult
 
@@ -160,7 +162,7 @@ class OldMaidLogic(GameLogic):
             p_str = f"p{player_idx}"
 
             if self.phase == "REPLY":
-                self.history.append(f'({p_str} "{move}")')
+                self.history.append(sxpb.dumps({p_str: move}))
                 self.phase = "PLAY"
                 self.turn = 1 - self.turn
                 return MoveResult(True, "")
@@ -188,7 +190,7 @@ class OldMaidLogic(GameLogic):
                     self.hover_exchange_done = True
                     self.phase = "REPLY"
                     self.turn = 1 - self.turn
-                    self.history.append(f'({p_str} "{move}")')
+                    self.history.append(sxpb.dumps({p_str: move}))
                     return MoveResult(True, "")
 
                 elif action.endswith("!"):
@@ -203,8 +205,8 @@ class OldMaidLogic(GameLogic):
                     idx = int(idx_str)
                     drawn = self.hands[opp_idx].pop(idx)
 
-                    self.history.append(f'({p_str} "{move}")')
-                    self.history.append(f"(card {drawn})")
+                    self.history.append(sxpb.dumps({p_str: move}))
+                    self.history.append(sxpb.dumps({"card": drawn}))
 
                     self.hover_exchange_done = False
 

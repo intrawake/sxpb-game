@@ -4,6 +4,8 @@ import re
 import sys
 from typing import List, Optional, Tuple
 
+import sxpb
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..", "src"))
 from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
@@ -291,15 +293,17 @@ class BattleshipLogic(GameLogic):
                     if move_str.startswith("place"):
                         if p == player_idx + 1 or self.is_game_over():
                             # Own placement or game over: show full move
-                            lines.append(f'(p{p} "{move_str}")')
+                            lines.append(sxpb.dumps({f"p{p}": move_str}))
                         else:
                             # Opponent placement: redact coordinates
                             parts = move_str.split()
                             ship_name = parts[1] if len(parts) > 1 else "unknown"
-                            lines.append(f'(p{p} "place {ship_name} [redacted]")')
+                            lines.append(
+                                sxpb.dumps({f"p{p}": f"place {ship_name} [redacted]"})
+                            )
                     else:
                         # Fire or other move: show as-is
-                        lines.append(f'(p{p} "{move_str}")')
+                        lines.append(sxpb.dumps({f"p{p}": move_str}))
                     break
         return (
             "; --- Move History ---\n"

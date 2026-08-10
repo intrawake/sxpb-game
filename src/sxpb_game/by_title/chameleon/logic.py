@@ -1,5 +1,8 @@
 import random
 from typing import List, Optional, Tuple
+
+import sxpb
+
 from sxpb_game.eval.logic import GameLogic, MoveResult, Outcome, read_rulebook
 
 
@@ -238,13 +241,13 @@ class ChameleonLogic(GameLogic):
                         False,
                         f"You cannot say any of the candidate words (like '{word}') during the word-association phase!",
                     )
-            self.history.append(f'({p_str} "{move}")')
+            self.history.append(sxpb.dumps({p_str: move}))
             self.player_word_idx += 1
             if self.player_word_idx >= len(self.player_word_order):
                 self.phase = "DAY_ORDER"
             return MoveResult(True, "")
         if self.phase == "DAY_DISCUSSION_REPLY":
-            self.history.append(f'({p_str} "{move}")')
+            self.history.append(sxpb.dumps({p_str: move}))
             self.phase = "DAY_DISCUSSION"
             return MoveResult(True, "")
         if self.phase == "DAY_DISCUSSION":
@@ -268,9 +271,9 @@ class ChameleonLogic(GameLogic):
                 self.turn_question_asked = True
                 self.discussion_target = target_idx
                 self.phase = "DAY_DISCUSSION_REPLY"
-                self.history.append(f'({p_str} "{move}")')
+                self.history.append(sxpb.dumps({p_str: move}))
                 return MoveResult(True, "")
-            self.history.append(f'({p_str} "{move}")')
+            self.history.append(sxpb.dumps({p_str: move}))
             self.discussion_idx += 1
             self.turn_question_asked = False
             if self.discussion_idx >= len(self.discussion_order):
@@ -295,7 +298,7 @@ class ChameleonLogic(GameLogic):
                 if t_idx < 0 or t_idx >= self.num_players or t_idx == self.leader_idx:
                     return MoveResult(False, "")
                 self.day_votes[p_idx] = t_idx
-                self.history.append(f"(vote {p_str} p{t_idx + 1})")
+                self.history.append(sxpb.dumps({"vote": f"{p_str} p{t_idx + 1}"}))
                 self.vote_idx += 1
                 if self.vote_idx >= len(self.vote_order):
                     self._resolve_vote()
@@ -313,11 +316,13 @@ class ChameleonLogic(GameLogic):
                     return MoveResult(False, "")
                 if t_idx not in self.tie_candidates:
                     return MoveResult(False, "")
-                self.history.append(f"(vote {p_str} p{t_idx + 1})  ; tiebreaker")
+                self.history.append(
+                    sxpb.dumps({"vote": f"{p_str} p{t_idx + 1}"}) + "  ; tiebreaker"
+                )
                 self._apply_vote_result(t_idx)
                 return MoveResult(True, "")
         if self.phase == "CHAMELEON_GUESS":
-            self.history.append(f'({p_str} "{move}")')
+            self.history.append(sxpb.dumps({p_str: move}))
             if self.secret_word and move and self.secret_word.lower() in move.lower():
                 self.game_over = True
                 self.result = "Chameleon"
