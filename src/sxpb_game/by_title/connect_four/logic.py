@@ -6,7 +6,7 @@ from typing import List, Optional
 
 # Ensure we can import from src
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
-from sxpb_game.eval.logic import GameLogic, MoveResult
+from sxpb_game.eval.logic import GameLogic, MoveResult, read_rulebook
 
 
 class ConnectFourLogic(GameLogic):
@@ -27,20 +27,27 @@ class ConnectFourLogic(GameLogic):
 
     def get_valid_moves(self):
         return [
-            self.COL_LABELS[c] for c in range(self.COLS) if self.heights[c] < self.ROWS
+            f"{self.COL_LABELS[c]}{self.heights[c] + 1}"
+            for c in range(self.COLS)
+            if self.heights[c] < self.ROWS
         ]
 
     def parse_move(self, move_str):
         if not move_str:
             return None
         clean = move_str.strip().upper()
-        match = re.search(r"([RY])?\s*([A-G])([1-6])?", clean)
+        match = re.fullmatch(r"([RY])?\s*([A-G])([1-6])?", clean)
         if not match:
             return None
         col_char = match.group(2).lower()
         col_idx = self.COL_LABELS.index(col_char)
         if not self.is_valid_col(col_idx):
             return None
+        row_str = match.group(3)
+        if row_str:
+            expected = str(self.heights[col_idx] + 1)
+            if row_str != expected:
+                return None
         return col_idx
 
     def undo_move(self, col):
@@ -168,6 +175,9 @@ class ConnectFourLogic(GameLogic):
 ; --- Game Metadata ---
 (player_to_move {player_full})
 (move_count {self.move_count})"""
+
+    def get_rules(self) -> str:
+        return read_rulebook(__file__)
 
     def get_algorithm_move(
         self, player_idx: int, algorithm: str

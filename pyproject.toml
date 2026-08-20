@@ -9,9 +9,9 @@ license = {text = "0BSD"}
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",
-    "sxpb @ git+https://github.com/sxproto/sxpb-py@539ea1b3fde70abe6c1c2f5188290e51a577d204",
-    "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@78b8f7e6669a19bbb98650b41853607f9b04f251",
-    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@2e8e826f43f8e1720ecc8a49093fcb91757ff64e",
+    "sxpb @ git+https://github.com/sxproto/sxpb-py@ee53905ac0a54dc1cafea577952ec1e7935e3d46",
+    "rendezqueue @ git+https://github.com/rendezqueue/rendezqueue-py.git@4bc2867c924290d7c54397b95050755b6f98a22a",
+    "sxpb-llm @ git+https://github.com/intrawake/sxpb-llm.git@56dd2284d690ba1214485e089105d074a78fe066",
 ]
 requires-python = ">=3.10"
 
@@ -27,6 +27,12 @@ dev = [
     "ty==0.0.64",
 ]
 
+[tool.pytest.ini_options]
+addopts = [
+    "-q",
+    "--import-mode=importlib",
+]
+
 [tool.ty.environment]
 root = ["src", "test", "."]
 
@@ -39,7 +45,7 @@ tidy-sxpb = "sxpb-tidy --ignore-file .gitignore"
 tidy = {composite = ["tidy-python", "tidy-sxpb"]}
 lint = {composite = ["check-format", "check-type", "lint-sxpb"]}
 tidytest = {composite = ["tidy", "lint", "test"]}
-test = "pytest -q"
+test = "pytest"
 server = "python -m sxpb_game.harness.sxpb_game_main --model_by_name preset/model_by_name.sxpb"
 client = "python -m sxpb_game.harness.client"
 recalculate-elo = "python -m sxpb_game.tool.recalculate_elo"
