@@ -324,7 +324,15 @@ def main(exit_func=None):
         "--retry_limit",
         type=int,
         default=3,
-        help="Maximum number of retries for failed LLM responses",
+        help="Maximum number of LLM attempts per move (invalid-reply "
+        "repairs and failed responses; transport failures back off 30s "
+        "between attempts)",
+    )
+    parser.add_argument(
+        "--lameduck_timeout",
+        type=int,
+        default=0,
+        help="Seconds to wait in lame-duck mode after game conclusion for players to receive final state before shutting down (default 0 = exit immediately after all have received)",
     )
     parser.add_argument(
         "--model_by_name",
@@ -1068,6 +1076,7 @@ def main(exit_func=None):
                     server_state["llm_thread"] = threading.get_ident()
 
                 try:
+                    transport_failed = False
                     if model == "non-existent-model":
                         content, api_req, api_res = None, None, None
                     elif model == "empty-response-model":
@@ -1108,6 +1117,7 @@ def main(exit_func=None):
                             api_url=args.openai_api_url,
                             **api_kwargs,
                         )
+                        transport_failed = content is None
                 except AbortRequestException:
                     content, api_req, api_res = None, None, None
                     sys.stdout.write(
@@ -1132,6 +1142,16 @@ def main(exit_func=None):
                         f"LLM provided empty response for player {curr_player_id}.\n"
                     )
                     sys.stdout.flush()
+                    if transport_failed:
+                        # Real transport failure (429/5xx/timeout), not model
+                        # misbehavior: back off before spending the next
+                        # attempt so brief outages ride out instead of
+                        # burning the whole per-move budget in seconds.
+                        sys.stdout.write(
+                            f"Transport failure for {curr_player_id}; waiting 30s before retry.\n"
+                        )
+                        sys.stdout.flush()
+                        time.sleep(30)
                     # Empty response: reset to clean prompt. Wipes any previous
                     # invalid-reply context so the model gets a fresh start.
                     messages = [{"role": "user", "content": prompt}]
@@ -1349,15 +1369,34 @@ def main(exit_func=None):
                                     all_received = False
                                     break
 
+                    # Lame-duck mode: when lameduck_timeout==0, exit immediately
+                    # after all have received (default). When >0, stay alive for
+                    # that many seconds after Game Over so extra status polls
+                    # (inkling likes to query again) still get the final board.
                     if all_received:
-                        sys.stdout.write(
-                            "All players received final state. Shutting down now.\n"
-                        )
-                        sys.stdout.flush()
-                        break
+                        if args.lameduck_timeout == 0:
+                            sys.stdout.write(
+                                "All players received final state. Shutting down now.\n"
+                            )
+                            sys.stdout.flush()
+                            break
+                        if not getattr(args, "_lameduck_all_received_logged", False):
+                            sys.stdout.write(
+                                "All players received final state. Staying in lame-duck mode.\n"
+                            )
+                            sys.stdout.flush()
+                            args._lameduck_all_received_logged = True
 
-                    if time.time() - conclusion_start > 15:
-                        sys.stdout.write("Shutdown timeout reached. Exiting.\n")
+                    if (
+                        args.lameduck_timeout > 0
+                        and time.time() - conclusion_start > args.lameduck_timeout
+                    ):
+                        if all_received:
+                            sys.stdout.write(
+                                "Lame-duck timeout reached. Shutting down now.\n"
+                            )
+                        else:
+                            sys.stdout.write("Shutdown timeout reached. Exiting.\n")
                         sys.stdout.flush()
                         break
 
