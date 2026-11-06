@@ -15,6 +15,7 @@ The repository currently includes implementations for:
 
 - **Tic-Tac-Toe:** The classic 3x3 grid game.
 - **Connect Four:** Four-in-a-row on a vertical grid.
+- **Quarto:** Shared-attribute alignment on a 4×4 board; choose the piece your opponent must place. Winning lines are detected automatically.
 - **Blackjack:** Standard casino rules with a random dealer.
 - **Mastermind:** Code-breaking logic puzzle.
 - **Wordle:** Word-guessing game with color-coded feedback.
@@ -52,6 +53,11 @@ pdm run server --game wordle \
   --players "(()) (() (name Codemaker) (model dono-gemini-lite)) (() (name Codebreaker) (model dono-gemma3-27b))" \
   --report_sxpb /tmp/wordle_report.sxpb \
   --trace_jsonl /tmp/wordle_trace.jsonl
+```
+
+```shell
+# Example: Quarto between two random players
+pdm run server --game quarto --players '(()) (() (algorithm random)) (() (algorithm random))'
 ```
 
 Useful artifact flags:

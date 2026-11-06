@@ -1,0 +1,23 @@
+(board
+ ; Columns: a b c d
+ (row4 (()) _ _ _ _)
+ (row3 (()) _ h _ _)
+ (row2 (()) _ _ _ _)
+ (row1 (()) A P U _)
+)
+(available_pieces (())
+ p
+ o
+ t
+ u
+ d
+ a
+ i
+ O
+ T
+ D
+ I
+)
+(offered_piece H)
+(player_to_move p2)
+(move_count 5)

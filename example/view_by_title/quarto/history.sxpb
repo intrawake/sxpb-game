@@ -1,0 +1,8 @@
+; --- Move History ---
+((history)
+ (p1 give A)
+ (p2 place a1 give P)
+ (p1 place b1 give U)
+ (p2 place c1 give h)
+ (p1 place b3 give H)
+)

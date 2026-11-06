@@ -12,6 +12,7 @@ from sxpb_game.by_title.tictactoe.logic import TicTacToeLogic
 from sxpb_game.by_title.mafia.logic import MafiaLogic
 from sxpb_game.by_title.blackjack.logic import BlackjackLogic
 from sxpb_game.by_title.connect_four.logic import ConnectFourLogic
+from sxpb_game.by_title.quarto.logic import QuartoLogic
 from sxpb_game.by_title.mastermind.logic import MastermindLogic
 from sxpb_game.by_title.sudoku.logic import SudokuLogic
 from sxpb_game.by_title.trolley.logic import TrolleyLogic
@@ -101,6 +102,8 @@ def test_game_format(game_title: str) -> None:
         test_player_idx = 1
     elif game_title == "connect_four":
         game = ConnectFourLogic()
+    elif game_title == "quarto":
+        game = QuartoLogic()
     elif game_title == "mastermind":
         game = MastermindLogic()
         test_player_idx = 1
