@@ -62,31 +62,31 @@ Useful artifact flags:
 
 ### Interactive Play with Clients
 
-To play a game interactively (e.g., Human vs Human), you must provide a `--rendezqueue_api_url`. A public instance is available at `https://rendezqueue.com/tryswap`.
+To play a game interactively (e.g., Human vs Human), you must provide a `--rendezqueue_api_url`. A public instance is available at `https://rendezqueue.com/plyswap`.
 
 #### Example: Human vs Human Tic-Tac-Toe
 
 1. **Start the server:**
    ```bash
    pdm run server --game tictactoe \
-     --rendezqueue_api_url https://rendezqueue.com/tryswap \
+     --rendezqueue_api_url https://rendezqueue.com/plyswap \
      --players "(()) () ()"
    ```
    The server will print commands for both players to join, including a unique key.
 
 2. **Player p0 joins (in a new terminal):**
    ```bash
-   pdm run client --rendezqueue_api_url https://rendezqueue.com/tryswap --key tictactoe_xxxxxx_X
+   pdm run client --rendezqueue_api_url https://rendezqueue.com/plyswap --key tictactoe_xxxxxx_X
    ```
 
 3. **Player p1 joins (in a new terminal):**
    ```bash
-   pdm run client --rendezqueue_api_url https://rendezqueue.com/tryswap --key tictactoe_xxxxxx_O
+   pdm run client --rendezqueue_api_url https://rendezqueue.com/plyswap --key tictactoe_xxxxxx_O
    ```
 
 To make a move, use the `--move` flag:
 ```bash
-pdm run client --rendezqueue_api_url https://rendezqueue.com/tryswap --key ... --move a1
+pdm run client --rendezqueue_api_url https://rendezqueue.com/plyswap --key ... --move a1
 ```
 
 ## License

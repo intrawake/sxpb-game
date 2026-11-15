@@ -919,7 +919,7 @@ def main(exit_func=None):
         )
         return valid, move_failed_reason
 
-    def send_state_to_player(player_id):
+    def send_state_to_player(player_id, *, reply_to=None, accepted=None):
         with game_lock:
             is_over = game.is_game_over() or (
                 args.turn_limit and turns_taken >= args.turn_limit
@@ -943,6 +943,10 @@ def main(exit_func=None):
                 "winner": winner,
                 "valid_moves": valid_moves,
             }
+            if reply_to is not None:
+                state["reply_to"] = reply_to
+            if accepted is not None:
+                state["accepted"] = accepted
             if getattr(args, "client_full_prompt_on", False):
                 player_idx = players.index(player_id)
                 state["full_prompt"] = generate_client_prompt(
@@ -1257,7 +1261,7 @@ def main(exit_func=None):
                     if action == "JOIN":
                         sys.stdout.write(f"Player {player_id} joined!\n")
                         sys.stdout.flush()
-                        send_state_to_player(player_id)
+                        send_state_to_player(player_id, reply_to=msg.get("request_id"))
                         process_automated_turn()
 
                     elif action == "MOVE":
@@ -1275,7 +1279,11 @@ def main(exit_func=None):
                                     f"Player {player_id} tried to move out of turn!\n"
                                 )
                                 sys.stdout.flush()
-                                send_state_to_player(player_id)
+                                send_state_to_player(
+                                    player_id,
+                                    reply_to=msg.get("request_id"),
+                                    accepted=False,
+                                )
                                 continue
 
                             valid, reason = attempt_move(players.index(player_id), move)
@@ -1286,14 +1294,24 @@ def main(exit_func=None):
                                 sys.stdout.flush()
                                 turns_taken += 1
                                 for p in players:
-                                    send_state_to_player(p)
+                                    send_state_to_player(
+                                        p,
+                                        reply_to=msg.get("request_id")
+                                        if p == player_id
+                                        else None,
+                                        accepted=True if p == player_id else None,
+                                    )
                                 process_automated_turn()
                             else:
                                 sys.stdout.write(
                                     f"Invalid move from {player_id}: {move}\n"
                                 )
                                 sys.stdout.flush()
-                                send_state_to_player(player_id)
+                                send_state_to_player(
+                                    player_id,
+                                    reply_to=msg.get("request_id"),
+                                    accepted=False,
+                                )
 
                 except Exception as e:
                     sys.stdout.write(
@@ -1309,10 +1327,10 @@ def main(exit_func=None):
             p_key = conf.get("key", f"{game_key}_{p}")
             player_clients[p] = RendezqueueClient(
                 url=args.rendezqueue_api_url,
-                key=p_key,
+                room=p_key,
                 hue=f"server_for_{p}",
                 on_data=create_on_data(p),
-                poll_interval_ms=500,
+                poll_interval_ms=250,
             )
 
     try:
@@ -1364,10 +1382,13 @@ def main(exit_func=None):
                     all_received = True
                     for p in players:
                         if p in player_clients:
-                            with player_clients[p].lock:
-                                if len(player_clients[p].outgoing_queue) > 0:
-                                    all_received = False
-                                    break
+                            client = player_clients[p]
+                            # The queue property takes its own lock. Advertise the
+                            # successor before shutdown so the command can certify
+                            # its final EMPTY receipt and exit without a dangling peer.
+                            if client.outgoing_queue or not client.current_advertised:
+                                all_received = False
+                                break
 
                     # Lame-duck mode: when lameduck_timeout==0, exit immediately
                     # after all have received (default). When >0, stay alive for

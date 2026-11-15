@@ -185,6 +185,10 @@ def test_server_log_sxpb_old_maid(env, rendezqueue_server, tmp_path):
             str(history_file),
             "--turn_limit",
             "4",
+            # This log-format test has no connected players to receive final
+            # state. Use the server's explicit bounded shutdown policy.
+            "--lameduck_timeout",
+            "1",
         ],
         env=env,
         stdout=subprocess.PIPE,

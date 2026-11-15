@@ -1,81 +1,81 @@
+"""Actual command processes hand off across turns, expiry, and game shutdown."""
+
+from contextlib import closing
 import os
+import shlex
+import socket
 import subprocess
 import sys
 import time
+import uuid
+
 import pytest
-import socket
-from contextlib import closing
 
 from test.helpers import read_until, wait_for_port
 
-# Paths
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-TIC_TAC_TOE_DIR = os.path.join(REPO_ROOT, "tictactoe")
 SERVER_DIR = os.path.join(REPO_ROOT, "src", "sxpb_game", "harness")
 SERVER_PY = os.path.join(SERVER_DIR, "sxpb_game_main.py")
 CLIENT_PY = os.path.join(SERVER_DIR, "client.py")
 
 
-def find_free_port():
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("", 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
-
-
 @pytest.fixture
 def env():
-    e = os.environ.copy()
-    # Ensure src and game root are in PYTHONPATH
-    e["PYTHONPATH"] = f"{REPO_ROOT}:{os.path.join(REPO_ROOT, 'src')}"
-    e["PYTHONUNBUFFERED"] = "1"
-    return e
+    return dict(
+        os.environ, PYTHONPATH=f"{REPO_ROOT}:{REPO_ROOT}/src", PYTHONUNBUFFERED="1"
+    )
 
 
 @pytest.fixture
 def rendezqueue_server():
-    port = find_free_port()
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        sock.bind(("", 0))
+        port = sock.getsockname()[1]
     url = f"http://127.0.0.1:{port}/"
-
-    # Start the python rendezqueue server locally for the test
-    cmd = [
-        sys.executable,
-        "-m",
-        "rendezqueue.server",
-        "--http_host",
-        "127.0.0.1",
-        "--http_port",
-        str(port),
-    ]
-    server_proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "rendezqueue.server",
+            "--http_host",
+            "127.0.0.1",
+            "--http_port",
+            str(port),
+            "--plyswap_ttl",
+            "1",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
+    try:
+        wait_for_port(port, process=process)
+        yield url
+    finally:
+        process.terminate()
+        process.communicate(timeout=5)
 
-    wait_for_port(port, process=server_proc)
 
-    yield url
-
-    server_proc.terminate()
-    server_proc.wait(timeout=2)
+def continuation(output):
+    lines = [line for line in output.splitlines() if line.startswith("Continue with: ")]
+    assert len(lines) == 1, output
+    arguments = shlex.split(lines[0].removeprefix("Continue with: "))
+    assert len(arguments) == 4 and arguments[::2] == ["--self", "--peer"]
+    return arguments
 
 
 def test_tictactoe_integration(env, rendezqueue_server):
-    """
-    Integration test for server and client.
-    Spins up a local Rendezqueue service just for the test.
-    """
     url = rendezqueue_server
-    lobby_key = f"test_game_{int(time.time())}"
-
-    # Start the authoritative server
-    server_proc = subprocess.Popen(
+    key = "game-" + uuid.uuid4().hex
+    processes = []
+    server = subprocess.Popen(
         [
             sys.executable,
             SERVER_PY,
             "--rendezqueue_api_url",
             url,
             "--key",
-            lobby_key,
+            key,
             "--openai_api_url",
             "http://localhost:11434/v1",
             "--game",
@@ -85,92 +85,90 @@ def test_tictactoe_integration(env, rendezqueue_server):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        bufsize=1,  # Line buffered
     )
+    logs = []
+
+    def command(player, *arguments):
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                CLIENT_PY,
+                "--rendezqueue_api_url",
+                url,
+                "--key",
+                f"{key}_{player}",
+                *arguments,
+            ],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        processes.append(process)
+        return process
+
+    def completed(process):
+        output, errors = process.communicate(timeout=20)
+        assert process.returncode == 0, f"{output}\n{errors}"
+        return output
+
+    def accepted(player, move):
+        assert server.stdout is not None
+        logs.append(
+            read_until(
+                server.stdout, f"Move accepted from {player}: {move}", timeout=20
+            )
+        )
 
     try:
-        assert server_proc.stdout is not None
-        read_until(server_proc.stdout, "Server is live")
+        assert server.stdout is not None
+        logs.append(read_until(server.stdout, "Server is live"))
+        x1 = command("X", "--move", "b2")
+        accepted("X", "b2")
+        # Separate status command exits; its cursor is all the next process gets.
+        status = completed(command("O", "--status"))
+        assert "You are: O" in status and "Current Player: O" in status
+        first_o_cursor = continuation(status)
+        # The command's cached row expires while the authoritative peer remains live.
+        time.sleep(1.25)
+        o1 = command("O", *first_o_cursor, "--move", "a1")
+        accepted("O", "a1")
+        x1_output = completed(x1)
+        assert "Current Board:" in x1_output
+        x_cursor = continuation(x1_output)
+        assert x_cursor != first_o_cursor
 
-        # Player keys
-        x_key = f"{lobby_key}_X"
-        o_key = f"{lobby_key}_O"
-
-        # 1. Player X joins and makes a move
-        x_proc1 = subprocess.Popen(
-            [
-                sys.executable,
-                CLIENT_PY,
-                "--rendezqueue_api_url",
-                url,
-                "--key",
-                x_key,
-                "--move",
-                "b2",
-            ],
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        read_until(server_proc.stdout, "Move accepted from X: b2")
-
-        # 2. Player O joins and checks status (without making a move)
-        o_res1 = subprocess.run(
-            [
-                sys.executable,
-                CLIENT_PY,
-                "--rendezqueue_api_url",
-                url,
-                "--key",
-                o_key,
-                "--status",
-            ],
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-        assert o_res1.returncode == 0
-        assert "You are: O" in o_res1.stdout
-        assert "Current Player: O" in o_res1.stdout
-        assert "X" in o_res1.stdout  # Board should show X's move
-
-        # 3. Player O makes a move.
-        o_proc2 = subprocess.Popen(
-            [
-                sys.executable,
-                CLIENT_PY,
-                "--rendezqueue_api_url",
-                url,
-                "--key",
-                o_key,
-                "--move",
-                "a1",
-            ],
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        # Now that O has moved, X's blocking client should realize it is its turn again
-        # and exit.
-        try:
-            x_out, x_err = x_proc1.communicate(timeout=15)
-        except subprocess.TimeoutExpired:
-            x_proc1.kill()
-            x_out, x_err = x_proc1.communicate()
-            assert False, f"Player X timed out waiting for its turn again. Out: {x_out}"
-
-        assert x_proc1.returncode == 0
-        assert "Current Board:" in x_out
-
-        # O's process should also exit cleanly now that its move is confirmed,
-        # but it will block waiting for X. Let's kill it so the test can finish.
-        o_proc2.kill()
-
+        x2 = command("X", *x_cursor, "--move", "a2")
+        accepted("X", "a2")
+        o_cursor = continuation(completed(o1))
+        assert o_cursor != first_o_cursor
+        o2 = command("O", *o_cursor, "--move", "b1")
+        accepted("O", "b1")
+        x_cursor2 = continuation(completed(x2))
+        assert x_cursor2 != x_cursor
+        x3 = command("X", *x_cursor2, "--move", "c2")
+        accepted("X", "c2")
+        for process in (o2, x3):
+            output = completed(process)
+            assert "Game Over! Winner: X" in output
+            assert "Continue with:" not in output
+        output, errors = server.communicate(timeout=10)
+        logs.append(output)
+        assert server.returncode == 0, errors
+        assert "All players received final state. Shutting down now." in output
+        entire_log = "".join(logs)
+        for player, move in [
+            ("X", "b2"),
+            ("O", "a1"),
+            ("X", "a2"),
+            ("O", "b1"),
+            ("X", "c2"),
+        ]:
+            assert entire_log.count(f"Move accepted from {player}: {move}") == 1
+        assert all(process.poll() == 0 for process in processes)
     finally:
-        server_proc.terminate()
-        server_proc.wait()
+        # Cleanup is only for failures; success above requires every process to exit.
+        for process in [*processes, server]:
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=5)
